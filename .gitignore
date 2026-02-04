@@ -1,0 +1,44 @@
+# =====================
+# ENV / SECRETS
+# =====================
+.env
+.env.*
+
+# =====================
+# .NET BUILD OUTPUT
+# =====================
+bin/
+obj/
+
+# =====================
+# IDE FILES
+# =====================
+.idea/
+.vs/
+.vscode/
+
+# =====================
+# USER / TEMP FILES
+# =====================
+*.user
+*.suo
+*.cache
+*.log
+*.tmp
+
+# =====================
+# APP SETTINGS (SECRETS)
+# =====================
+appsettings.Development.json
+appsettings.Production.json
+
+# =====================
+# DATABASE FILES
+# =====================
+*.db
+*.bak
+
+# =====================
+# OS JUNK (macOS)
+# =====================
+.DS_Store

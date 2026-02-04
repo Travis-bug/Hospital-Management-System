@@ -1,0 +1,36 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+
+namespace Clinic_Management.Models;
+
+[Table("Shift")]
+public partial class Shift
+{
+    [Key]
+    [Column("ShiftID")]
+    public int ShiftId { get; set; }
+
+    [Column(TypeName = "enum('Morning','Evening')")]
+    public string ShiftType { get; set; } = null!;
+
+    [Column(TypeName = "time")]
+    public TimeOnly StartTime { get; set; }
+
+    [Column(TypeName = "time")]
+    public TimeOnly EndTime { get; set; }
+
+    [InverseProperty("Shift")]
+    public virtual ICollection<AdminAssistantShift> AdminAssistantShifts { get; set; } = new List<AdminAssistantShift>();
+
+    [InverseProperty("Shift")]
+    public virtual ICollection<DoctorsShift> DoctorsShifts { get; set; } = new List<DoctorsShift>();
+
+    [InverseProperty("Shift")]
+    public virtual ICollection<NurseShift> NurseShifts { get; set; } = new List<NurseShift>();
+
+    [InverseProperty("Shift")]
+    public virtual ICollection<SecretaryShift> SecretaryShifts { get; set; } = new List<SecretaryShift>();
+}
