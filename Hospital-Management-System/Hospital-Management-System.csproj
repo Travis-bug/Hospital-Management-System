@@ -31,4 +31,49 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="Services\ClinicalRecording\BillingService.cs">
+        <DependentUpon>IBillingService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\ClinicalRecording\MedAssistService.cs">
+        <DependentUpon>IMedAssistService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\ClinicalRecording\DiagnosticsService.cs">
+        <DependentUpon>IDignosticsService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\ClinicalRecording\PrescriptionService.cs">
+        <DependentUpon>IPrescriptionService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\ClinicalRecording\ReferralService.cs">
+        <DependentUpon>IReferralService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\ClinicalRecording\TestResultService.cs">
+        <DependentUpon>ITestResultsService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\ClinicalRecording\VisitService.cs">
+        <DependentUpon>IVistsService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\ClinicalRecording\VitalsService.cs">
+        <DependentUpon>IVitalsService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\PatientManagement\PatientSearchEngineService.cs">
+        <DependentUpon>IPatientSearchEngineService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\PatientManagement\PatientService.cs">
+        <DependentUpon>IPatientService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\PatientManagement\EnrollmentService.cs">
+        <DependentUpon>IEnrollmentService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\Scheduling\AppointmentService.cs">
+        <DependentUpon>IAppointmentService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\Scheduling\AvailabilityService.cs">
+        <DependentUpon>IAvailabilityService.cs</DependentUpon>
+      </Compile>
+      <Compile Update="Services\Scheduling\SchedulingQueryService.cs">
+        <DependentUpon>ISchedulingQureyService.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
 </Project>
