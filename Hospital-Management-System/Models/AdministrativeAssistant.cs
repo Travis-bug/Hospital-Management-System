@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Clinic_Management.Models;
+namespace Hospital_Management_System.Models;
 
 [Table("Administrative_Assistant")]
 public partial class AdministrativeAssistant
@@ -33,7 +33,9 @@ public partial class AdministrativeAssistant
 
     [StringLength(10)]
     public string? PostalCode { get; set; }
-
+    
+    public string? IdentityUserId { get; set; }
+    
     [InverseProperty("Admin")]
     public virtual ICollection<AdminAssistantShift> AdminAssistantShifts { get; set; } = new List<AdminAssistantShift>();
 }

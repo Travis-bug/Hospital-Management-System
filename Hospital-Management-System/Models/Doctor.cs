@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Clinic_Management.Models;
+namespace Hospital_Management_System.Models;
 
 [Table("Doctor")]
 public partial class Doctor
@@ -33,6 +33,8 @@ public partial class Doctor
 
     [StringLength(10)]
     public string? PostalCode { get; set; }
+    
+    public string? IdentityUserId { get; set; }
 
     [InverseProperty("Doctor")]
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();

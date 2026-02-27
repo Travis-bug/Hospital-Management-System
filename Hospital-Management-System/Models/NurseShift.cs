@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Clinic_Management.Models;
+namespace Hospital_Management_System.Models;
 
 [Index("NurseId", Name = "NurseID")]
 [Index("ShiftId", Name = "ShiftID")]

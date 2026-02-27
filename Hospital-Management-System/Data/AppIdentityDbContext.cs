@@ -5,4 +5,5 @@ namespace Clinic_Management.Data;
 
 public class AppIdentityDbContext(DbContextOptions<AppIdentityDbContext> options) : IdentityDbContext(options)
 {
+    
 }

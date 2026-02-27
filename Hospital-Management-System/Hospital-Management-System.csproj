@@ -4,8 +4,8 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <UserSecretsId>aspnet-Clinic_Management-3dceef4b-d483-40b2-94cd-a0d451a0afe7</UserSecretsId>
-        <RootNamespace>Clinic_Management</RootNamespace>
+        <UserSecretsId>aspnet-Hospital-Management-System-3dceef4b-d483-40b2-94cd-a0d451a0afe7</UserSecretsId>
+        <RootNamespace>Hospital_Management_System</RootNamespace>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
     

@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
-
-namespace Clinic_Management.Models;
+namespace Hospital_Management_System.Models;
 
 [Table("Doctors_Shifts")]
 [Index("DoctorId", Name = "DoctorID")]

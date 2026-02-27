@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Clinic_Management.Models;
+namespace Hospital_Management_System.Models;
 
 [Table("Manager")]
 public partial class Manager
@@ -33,4 +33,6 @@ public partial class Manager
 
     [StringLength(10)]
     public string? PostalCode { get; set; }
+    
+    public string? IdentityUserId { get; set; }
 }

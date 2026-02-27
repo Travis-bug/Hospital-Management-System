@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Clinic_Management.Models;
+namespace Hospital_Management_System.Models;
 
 [Table("Secretary")]
 public partial class Secretary
@@ -33,6 +33,8 @@ public partial class Secretary
 
     [StringLength(10)]
     public string? PostalCode { get; set; }
+    
+    public string? IdentityUserId { get; set; }
 
     [InverseProperty("Secretary")]
     public virtual ICollection<SecretaryShift> SecretaryShifts { get; set; } = new List<SecretaryShift>();

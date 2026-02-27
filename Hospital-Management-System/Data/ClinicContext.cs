@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using Clinic_Management.Models;
+using Hospital_Management_System.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Clinic_Management.Data;
+namespace Hospital_Management_System.Data;
 
 public partial class ClinicContext : DbContext
 {

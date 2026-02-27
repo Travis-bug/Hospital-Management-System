@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Clinic_Management.Models;
+namespace Hospital_Management_System.Models;
 
 [Table("Patient")]
 [Index("DoctorId", Name = "DoctorID")]
@@ -27,6 +27,8 @@ public partial class Patient
 
     [StringLength(100)]
     public string? Address { get; set; }
+    
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [StringLength(20)]
     public string? PhoneNumber { get; set; }
