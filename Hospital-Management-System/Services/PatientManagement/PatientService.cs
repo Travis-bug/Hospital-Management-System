@@ -11,14 +11,16 @@ namespace Hospital_Management_System.Services.PatientManagement
         {
             _context = context;
         }
-
+        
+ // get all patients
         public async Task<IEnumerable<Patient>> GetAllAsync()
         {
             return await _context.Patients
                 .OrderBy(p => p.LastName)
                 .ToListAsync();
         }
-
+        
+// get patient info by id
         public async Task<Patient?> GetByIdAsync(int id)
         {
             return await _context.Patients
@@ -35,7 +37,7 @@ namespace Hospital_Management_System.Services.PatientManagement
         }
         
         
-         //create a range of patients at a single time 
+         //create a range of patients at a single time (in case of bulk insert)
         public async Task CreateRangeAsync( IEnumerable <Patient> patients)
         {
             var list = patients.ToList(); // convert to list to avoid concurrency issues with AddRangeAsync method
@@ -74,6 +76,8 @@ namespace Hospital_Management_System.Services.PatientManagement
             await _context.SaveChangesAsync();
         }
 
+        
+        // delete patient info 
         public async Task DeleteAsync(int id)
         {
             var patient = await _context.Patients
@@ -86,6 +90,8 @@ namespace Hospital_Management_System.Services.PatientManagement
             await _context.SaveChangesAsync();
         }
 
+        
+        // search patient info by keyword, name, or email
         public async Task<IEnumerable<Patient>> SearchAsync(string keyword)
         {
             if (string.IsNullOrWhiteSpace(keyword))
