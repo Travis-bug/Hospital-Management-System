@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Clinic_Management.Data.Migrations.Auth
+namespace Hospital_Management_System.Data.Migrations.Auth
 {
     /// <inheritdoc />
     public partial class InitIdentity : Migration
