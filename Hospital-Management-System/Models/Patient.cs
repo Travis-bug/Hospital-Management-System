@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,16 +27,23 @@ public partial class Patient
     public string? Address { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public DateTime LastModified { get; set; } = DateTime.UtcNow;
 
     [StringLength(20)]
     public string? PhoneNumber { get; set; }
 
-    [StringLength(100)]
-    public string? Email { get; set; }
+    [StringLength(100)] 
+    public string? Email { get; set; } = ""; 
+    
+    
 
     [StringLength(20)]
     public string HealthCardNo { get; set; } = null!;
 
+    
+    
+    
     [Column(TypeName = "enum('Enrolled','Walk-in')")]
     public string Type { get; set; } = null!;
 
@@ -51,6 +56,7 @@ public partial class Patient
     [Column(TypeName = "enum('Husband','Wife','Son','Daughter','Father','Mother','Other')")]
     public string? Relationship { get; set; }
 
+    
     [InverseProperty("Patient")]
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 

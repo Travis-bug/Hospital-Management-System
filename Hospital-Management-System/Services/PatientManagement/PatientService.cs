@@ -2,14 +2,19 @@ using Hospital_Management_System.Data;
 using Hospital_Management_System.Models;
 using Microsoft.EntityFrameworkCore;
 namespace Hospital_Management_System.Services.PatientManagement
+
 {
     public class PatientService : IPatientService
     {
         private readonly ClinicContext _context;
+        private readonly IEnrollmentService _enrollmentService;
 
-        public PatientService(ClinicContext context)
+        public PatientService(ClinicContext context, IEnrollmentService enrollmentService)
+        
         {
             _context = context;
+            _enrollmentService = enrollmentService;
+           
         }
         
  // get all patients
@@ -31,9 +36,7 @@ namespace Hospital_Management_System.Services.PatientManagement
         // create a single patient at a single time 
         public async Task CreateAsync(Patient patients)
         {
-            patients.CreatedAt = DateTime.UtcNow;
-            _context.Patients.Add(patients);
-            await _context.SaveChangesAsync();
+            await _enrollmentService.EnrollAsync(patients);
         }
         
         
@@ -43,12 +46,8 @@ namespace Hospital_Management_System.Services.PatientManagement
             var list = patients.ToList(); // convert to list to avoid concurrency issues with AddRangeAsync method
             foreach (var p in list)
             {
-                p.CreatedAt = DateTime.UtcNow;
+                await _enrollmentService.EnrollAsync(p);
             }
-            await _context.Patients.AddRangeAsync(list); 
-            
-            await _context.SaveChangesAsync();
-            
         }
         
         public async Task<IEnumerable<Patient>> GetPatientsByDoctorId(int doctorId)
@@ -65,7 +64,15 @@ namespace Hospital_Management_System.Services.PatientManagement
 
             if (existingPatient == null)
                 throw new Exception("Patient not found");
-
+            
+            var isDuplicate = await _context.Patients
+                .AnyAsync(p => p.HealthCardNo == patient.HealthCardNo && p.PatientId != patient.PatientId);
+                
+            if (isDuplicate)
+                throw new Exception("This Health card number already assigned to another patient.");
+            
+            
+            existingPatient.LastModified = DateTime.UtcNow;
             existingPatient.FirstName = patient.FirstName;
             existingPatient.LastName = patient.LastName;
             existingPatient.DateOfBirth = patient.DateOfBirth;
@@ -103,7 +110,7 @@ namespace Hospital_Management_System.Services.PatientManagement
                 .Where(p =>
                     p.FirstName.ToLower().Contains(keyword) ||
                     p.LastName.ToLower().Contains(keyword) ||
-                    p.Email.ToLower().Contains(keyword))
+                    p.Email!.ToLower().Contains(keyword))
                     .ToListAsync();
         }
     }
