@@ -1,4 +1,4 @@
-namespace Clinic_Management.Services.ClinicalRecording;
+namespace Hospital_Management_System.Services.ClinicalRecording;
 
 public class BillingService
 {
