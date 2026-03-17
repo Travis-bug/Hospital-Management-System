@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
+
 
 namespace Hospital_Management_System.Models;
 
@@ -36,6 +35,26 @@ public partial class Doctor
     
     public string? IdentityUserId { get; set; }
 
+    
+    // NEW This helps the system know if they can work the Triage desk 
+    public bool IsTriageQualified { get; set; } = false;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     [InverseProperty("Doctor")]
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 

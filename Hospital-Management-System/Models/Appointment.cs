@@ -36,6 +36,16 @@ public partial class Appointment
     [Column(TypeName = "text")]
     public string? Notes { get; set; }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     [ForeignKey("DoctorId")]
     [InverseProperty("Appointments")]
     public virtual Doctor? Doctor { get; set; }
