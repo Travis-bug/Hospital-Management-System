@@ -53,6 +53,9 @@ public partial class Doctor
     
     
     
+    [InverseProperty("Doctor")]
+    public virtual ICollection<Visit> Visits { get; set; } = new List<Visit>();
+    
     
     
     [InverseProperty("Doctor")]

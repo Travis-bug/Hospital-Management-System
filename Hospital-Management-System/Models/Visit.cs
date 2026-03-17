@@ -69,11 +69,13 @@ public partial class Visit
     [Column("AppointmentID")]
     public int? AppointmentId { get; set; }
 
+    
+    
     [Column("DoctorID")]
-    public int? DoctorId { get; set; } //NEW  Nullable because a visit starts with a Nurse/Triage first
+    public int? DoctorId { get; set; } //NEW Nullable because a visit starts with a Nurse/Triage first
     
     
-    [ Column(TypeName = "text")]
+    [Column(TypeName = "text")]
     public string VisitNotes { get; set; } = null!;
     
     
@@ -117,4 +119,5 @@ public partial class Visit
     [ForeignKey("DoctorId")]
     [InverseProperty("Visits")]
     public virtual Doctor? Doctor { get; set; }
+    
 }
