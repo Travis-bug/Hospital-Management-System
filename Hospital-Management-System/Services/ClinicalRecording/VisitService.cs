@@ -33,12 +33,13 @@ public class VisitService : IVisitService
         visit.CheckinTime = DateTime.Now; // Log the start of their stay
 
 
-
+//======Decision tree for visit arrival source=================// 
         if (visit.AppointmentId != null)
         {
+            
             visit.ArrivalSource = "Appointment";
 
-            /////////////////////////////////////////////   
+            ///////////// sub branch one ////////////////////////////////   
             if (visit.PatientClass == "OutPatient")
             {
                 visit.AdmissionStatus = "Not-Admitted";
@@ -46,14 +47,12 @@ public class VisitService : IVisitService
             /////////////////////////////////////////////////
 
 
-            //////////////////////////////////////////////////
+            /////////////// sub branch two ///////////////////////////////////
             else if (visit.PatientClass == "InPatient")
             {
                 visit.AdmissionStatus = "Admitted";
                 //  visit.AdmissionDate = DateTime.Now; // Log the start of their stay
             }
-
-
             //////////////////////////////////////////////////
 
 
@@ -75,8 +74,7 @@ public class VisitService : IVisitService
                 visit.PatientClass = "Emergency";
                 visit.AdmissionStatus = "Triage Pending";
             }
-
-
+            
             
             try
             {
@@ -87,6 +85,7 @@ public class VisitService : IVisitService
             {
                 throw new InvalidOperationException("No triage doctor available for walk-in.");
             }
+            
         }
         
         _context.Visits.Add(visit);
@@ -94,23 +93,94 @@ public class VisitService : IVisitService
         return visit;
     }
 
+    
+    
+//====================== Get Structed Data (3 Layers)=======================================
 
-    public async Task<IEnumerable<Visit>> GetVisitsById(int Id)
+
+     // 1. THE "MANY" (The Decision Tree)
+    // Handles Dashboard (DoctorId only) and Profile (Both IDs)
+    public async Task<IEnumerable<Visit>> GetVisitsAsync(int? doctorId = null, int? patientId = null)
+    {
+        var query = _context.Visits
+            .AsNoTracking(); 
+        
+        //============================= Decision Tree for visit filtering ================================//
+        if (patientId.HasValue)
+        {
+            query = query.Where(v => v.PatientId == patientId); 
+        }
+
+        if (doctorId.HasValue)
+        {
+            query = query.Where(v => v.DoctorId == doctorId);
+        }
+       
+        return await query.ToListAsync(); 
+    }
+    
+    
+    // 2. THE "API ENTRY" (Security Layer)
+    // Used by Controllers to Protect the real Database PKs.
+    public async Task<Visit?> GetVisitByPublicIdAsync(string publicId)
     {
         return await _context.Visits
-            .AsNoTracking ()
-            .Where(v => v.VisitsId == Id)
-            .ToListAsync(); 
+            .AsNoTracking()
+            .FirstOrDefaultAsync(v => v.PublicId == publicId);
+    }
+    
+    
+    // 3. THE "WORKHORSE" (Internal Speed)
+    // Used inside the service for Updates/Business Logic.
+    public async Task <Visit?> GetVisitsById(int Id)
+    {
+        return await _context.Visits.FindAsync(Id);
+            
+    } 
+    
+//===============================================================================================//
+
+
+
+
+    public async Task<IEnumerable<Visit>> SearchVisitsAsync(string keyword, int doctorId)
+    {
+        if (string.IsNullOrWhiteSpace(keyword))
+            return []; // this should return an empty list if the keyword is null or whitespace {TEST} or change to Enumerable.Empty<Visit>()
+
+        keyword = keyword.ToLower();
+
+            return await _context.Visits
+                    
+                .Include(v => v.Patient)
+                
+                .Where(v =>
+                    v.DoctorId == doctorId ||
+                    v.Patient.FirstName.ToLower().Contains(keyword) ||
+                    v.Patient.LastName.ToLower().Contains(keyword))
+                .ToListAsync();
+        
     }
 
-    public async Task<IEnumerable<Visit>> GetVisitsByPatientIdAsync(int patientId)
+
+
+    public async Task<IEnumerable<Visit>> GetVisitsByDateAsync (DateTime date)
     {
-        return await _context.Visits.AsNoTracking().Where(v => v.PatientId == patientId).ToListAsync(); 
+        var startOfDay = date.Date; // get the start of the day
+        var endOfDay = startOfDay.AddDays(1); // get the end of the day
+        
+        return await _context.Visits 
+            .AsNoTracking()
+            .Where(v => v.CheckinTime >= startOfDay && v.CheckinTime < endOfDay) 
+            .ToListAsync(); 
     }
+    
+    
     
     public async Task UpdateClinicalNotesAsync(int visitId, string symptoms, string diagnosis, string treatment)
     {
-        var visit = await _context.Visits.FindAsync(visitId);
+        var visit = await GetVisitsById(visitId); // get the visit by id (this is the "WORKHORSE"````)
+        
         if (visit == null)
         {
             throw new Exception("Visit not found");
@@ -118,11 +188,17 @@ public class VisitService : IVisitService
         visit.Symptoms = symptoms;
         visit.Diagnosis = diagnosis;
         visit.Treatment = treatment;
+
+        await _context.SaveChangesAsync();
     }
+    
+    
     
     public async Task<bool> CompleteVisitAsync(int visitId)
     {
-        var visit = await _context.Visits.FindAsync(visitId);
+        var visit = await GetVisitsById(visitId);
+        
+        
         if (visit == null)
         {
             throw new Exception("Visit not found");

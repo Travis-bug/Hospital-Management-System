@@ -54,6 +54,7 @@ public partial class Patient
     public int? PrimaryMemberId { get; set; }
 
     [Column(TypeName = "enum('Husband','Wife','Son','Daughter','Father','Mother','Other')")]
+    [StringLength(50)]
     public string? Relationship { get; set; }
 
     
