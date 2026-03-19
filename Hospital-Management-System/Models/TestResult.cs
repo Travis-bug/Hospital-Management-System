@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,8 +14,18 @@ public partial class TestResult
     public int ResultId { get; set; }
 
     [Column("TestID")]
-    public int TestId { get; set; }
+    public int TestId { get; set; } // Foreign key column
 
+    [Column("VisitID")]
+    public int VisitId { get; set; }
+    
+    
+    [Required]
+    [MaxLength(12)]
+    [Column("PublicTestId")] 
+    public string PublicTestId { get; set; } = string.Empty; 
+    
+    
     [Column("NurseID")]
     public int NurseId { get; set; }
 
@@ -27,6 +35,12 @@ public partial class TestResult
     [Column(TypeName = "timestamp")]
     public DateTime? ResultDate { get; set; }
 
+    
+    
+    
+    [ForeignKey("VisitId")]
+    public virtual Visit Visit { get; set; } = null!; // new 
+    
     [ForeignKey("NurseId")]
     [InverseProperty("TestResults")]
     public virtual Nurse Nurse { get; set; } = null!;
@@ -34,6 +48,8 @@ public partial class TestResult
     [InverseProperty("Result")]
     public virtual ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
 
+    
+    
     [ForeignKey("TestId")]
     [InverseProperty("TestResults")]
     public virtual DiagnosticTest Test { get; set; } = null!;

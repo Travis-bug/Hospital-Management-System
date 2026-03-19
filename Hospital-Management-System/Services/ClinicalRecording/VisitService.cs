@@ -28,7 +28,7 @@ public class VisitService : IVisitService
 
     public async Task<Visit> CreateVisitAsync(Visit visit)
     {
-        visit.PublicId = SecureIdGenerator.GenerateID(); // Using the entropy method
+        visit.PublicId = SecureIdGenerator.GenerateID(10); // Using the entropy method
         visit.Status = "Active"; // Set the status to Active for appointments
         visit.CheckinTime = DateTime.Now; // Log the start of their stay
 
@@ -100,7 +100,7 @@ public class VisitService : IVisitService
         return await _context.Visits
             .AsNoTracking ()
             .Where(v => v.VisitsId == Id)
-            .ToListAsync();
+            .ToListAsync(); 
     }
 
     public async Task<IEnumerable<Visit>> GetVisitsByPatientIdAsync(int patientId)
