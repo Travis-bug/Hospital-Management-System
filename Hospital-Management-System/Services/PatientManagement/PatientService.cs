@@ -102,7 +102,7 @@ namespace Hospital_Management_System.Services.PatientManagement
         public async Task<IEnumerable<Patient>> SearchAsync(string keyword)
         {
             if (string.IsNullOrWhiteSpace(keyword))
-                return await GetAllAsync();
+                return []; // this should return an empty list if the keyword is null or whitespace {TEST} 
 
             keyword = keyword.ToLower();
 
