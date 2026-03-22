@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Hospital_Management_System.Database
+namespace Hospital_Management_System.Migrations.Database
 {
     /// <inheritdoc />
     public partial class InitialSnapshot : Migration

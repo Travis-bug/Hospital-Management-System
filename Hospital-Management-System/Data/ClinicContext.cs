@@ -17,6 +17,8 @@ public partial class ClinicContext : DbContext
     public virtual DbSet<AdministrativeAssistant> AdministrativeAssistants { get; set; }
 
     public virtual DbSet<Appointment> Appointments { get; set; }
+    
+    public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
     public virtual DbSet<DiagnosticTest> DiagnosticTests { get; set; }
 

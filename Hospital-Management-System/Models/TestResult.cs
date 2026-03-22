@@ -18,8 +18,16 @@ public partial class TestResult
 
     [Column("VisitID")]
     public int VisitId { get; set; }
-    
-    
+
+
+    /// <summary>
+    /// Represents the publicly accessible identifier for a specific test result.
+    /// </summary>
+    /// <remarks>
+    /// This is a unique, alphanumeric string required for identification of test results in public contexts.
+    /// It is automatically generated and assigned when a new test result is created.
+    /// This property has a maximum length of 12 characters and must be provided for the entity.
+    /// </remarks>
     [Required]
     [MaxLength(12)]
     [Column("PublicTestId")] 
@@ -30,6 +38,8 @@ public partial class TestResult
     public int NurseId { get; set; }
 
     [Column(TypeName = "text")]
+    [StringLength(50)]
+        
     public string Findings { get; set; } = null!;
 
     [Column(TypeName = "timestamp")]

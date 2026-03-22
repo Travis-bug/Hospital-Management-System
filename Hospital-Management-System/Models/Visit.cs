@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
@@ -8,16 +7,17 @@ namespace Hospital_Management_System.Models;
 
 [Index("AppointmentId", Name = "AppointmentID")]
 [Index("PatientId", Name = "PatientID")]
+[Index(nameof(VisitPublicId), IsUnique = true)]
 public partial class Visit
 {
     [Key]
     [Column("VisitsID")]
-    public int VisitsId { get; set; }
+    public int VisitsId { get; init; }
     
     [Required]
     [MaxLength(12)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty; // new for encrypted public secure string
+    public string VisitPublicId { get; set; } = string.Empty; // new for encrypted public secure string
     
     //These 2 go hand in hand if the patient walks in the visit becomes active, and the type becomes admitted
     //if the patient's visit is completed, the status changes to discharged
@@ -26,24 +26,28 @@ public partial class Visit
     
     // Tracks the lifecycle of this specific visit record
     [Column(TypeName = "enum('Active', 'Completed')")] 
+    [StringLength(30)]
     public string? Status { get; set; }
 
     // Defines the billing/care category
     [Column(TypeName = "enum('Inpatient', 'Outpatient', 'Emergency', 'ER Referral')")]
+    [StringLength(30)]
     public string? PatientClass { get; set; }
 
     // Tracks if they are currently occupying a hospital bed
     [Column(TypeName = "enum('Admitted', 'Not Admitted', 'Discharged', 'Triage Pending')")]
+    [StringLength(30)]
     public string? AdmissionStatus { get; set; }
 
     // How did they get here?
     [Column(TypeName = "enum('Appointment', 'Walk-in')")]
+    [StringLength(30)]
     public string? ArrivalSource { get; set; }
 
     //=======================================================
     
     [Column("PatientID")]
-    public int PatientId { get; set; }
+    public int PatientId { get; init; }
 
     
     [Column("Checkin_Time", TypeName = "timestamp")]
@@ -55,14 +59,17 @@ public partial class Visit
     
    
     [Column(TypeName = "text")]
+    [StringLength(30)]
     public string? Symptoms { get; set; }
 
     
     [Column(TypeName = "text")]
+    [StringLength(30)]
     public string? Diagnosis { get; set; }
 
     
     [Column(TypeName = "text")]
+    [StringLength(30)]
     public string? Treatment { get; set; }
 
     
@@ -74,8 +81,12 @@ public partial class Visit
     [Column("DoctorID")]
     public int? DoctorId { get; set; } //NEW Nullable because a visit starts with a Nurse/Triage first
     
+    [Column("NurseId")]
+    public int? NurseId { get; set; } 
+    
     
     [Column(TypeName = "text")]
+    [StringLength(100)]
     public string VisitNotes { get; set; } = null!;
     
     
@@ -119,5 +130,11 @@ public partial class Visit
     [ForeignKey("DoctorId")]
     [InverseProperty("Visits")]
     public virtual Doctor? Doctor { get; set; }
+    
+    
+    [ForeignKey("NurseId")]
+    [InverseProperty("Visits")]
+    public virtual Nurse? Nurse { get; set; }
+
     
 }

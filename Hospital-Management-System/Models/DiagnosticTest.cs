@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +13,17 @@ public partial class DiagnosticTest
     [Column("TestID")]
     public int TestId { get; set; }
 
+    /// <summary>
+    /// Gets or sets a unique public identifier associated with the entity.
+    /// This property is required and constrained to a maximum length of 12 characters.
+    /// </summary>
+    [Required]
+    [MaxLength(12)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = string.Empty; 
+
+
+
     [Column("VisitID")]
     public int VisitId { get; set; }
 
@@ -25,6 +34,7 @@ public partial class DiagnosticTest
     public string TestName { get; set; } = null!;
 
     [Column(TypeName = "text")]
+    [StringLength(30)]
     public string ClinicalNotes { get; set; } = null!;
 
     [Column(TypeName = "timestamp")]

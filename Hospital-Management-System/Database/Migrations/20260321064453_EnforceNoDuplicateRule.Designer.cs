@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Hospital_Management_System.Migrations.Database
+namespace Hospital_Management_System.Database.Migrations
 {
     [DbContext(typeof(ClinicContext))]
-    [Migration("20260305043834_InitialSnapshot")]
-    partial class InitialSnapshot
+    [Migration("20260321064453_EnforceNoDuplicateRule")]
+    partial class EnforceNoDuplicateRule
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -94,7 +94,8 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasDefaultValueSql("'20.00'");
 
                     b.Property<string>("IdentityUserId")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -136,6 +137,7 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasColumnName("DoctorID");
 
                     b.Property<string>("Notes")
+                        .HasMaxLength(30)
                         .HasColumnType("text");
 
                     b.Property<int?>("NurseId")
@@ -147,6 +149,7 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasColumnName("PatientID");
 
                     b.Property<string>("Status")
+                        .HasMaxLength(30)
                         .HasColumnType("enum('Booked','Cancelled','Arrived','Checked In','Checked Out','LWT','No-Show')");
 
                     b.Property<TimeOnly>("Time")
@@ -175,6 +178,7 @@ namespace Hospital_Management_System.Migrations.Database
 
                     b.Property<string>("ClinicalNotes")
                         .IsRequired()
+                        .HasMaxLength(30)
                         .HasColumnType("text");
 
                     b.Property<int>("DoctorId")
@@ -225,7 +229,11 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasColumnType("varchar(50)");
 
                     b.Property<string>("IdentityUserId")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<bool>("IsTriageQualified")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -312,9 +320,21 @@ namespace Hospital_Management_System.Migrations.Database
                     b.Property<DateTime?>("FeeDate")
                         .HasColumnType("datetime");
 
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int?>("PatientId")
                         .HasColumnType("int")
                         .HasColumnName("PatientID");
+
+                    b.Property<string>("PatientName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("PatientName");
 
                     b.Property<string>("ServiceName")
                         .IsRequired()
@@ -406,7 +426,8 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasDefaultValueSql("'35.00'");
 
                     b.Property<string>("IdentityUserId")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -529,10 +550,12 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasColumnName("PrimaryMemberID");
 
                     b.Property<string>("Relationship")
+                        .HasMaxLength(50)
                         .HasColumnType("enum('Husband','Wife','Son','Daughter','Father','Mother','Other')");
 
                     b.Property<string>("Type")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("enum('Enrolled','Walk-in')");
 
                     b.HasKey("PatientId")
@@ -708,7 +731,8 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasDefaultValueSql("'25.00'");
 
                     b.Property<string>("IdentityUserId")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -790,6 +814,7 @@ namespace Hospital_Management_System.Migrations.Database
 
                     b.Property<string>("ShiftType")
                         .IsRequired()
+                        .HasMaxLength(30)
                         .HasColumnType("enum('Morning','Evening')");
 
                     b.Property<TimeOnly>("StartTime")
@@ -812,11 +837,18 @@ namespace Hospital_Management_System.Migrations.Database
 
                     b.Property<string>("Findings")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("text");
 
                     b.Property<int>("NurseId")
                         .HasColumnType("int")
                         .HasColumnName("NurseID");
+
+                    b.Property<string>("PublicTestId")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)")
+                        .HasColumnName("PublicTestId");
 
                     b.Property<DateTime?>("ResultDate")
                         .ValueGeneratedOnAdd()
@@ -827,8 +859,14 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasColumnType("int")
                         .HasColumnName("TestID");
 
+                    b.Property<int>("VisitId")
+                        .HasColumnType("int")
+                        .HasColumnName("VisitID");
+
                     b.HasKey("ResultId")
                         .HasName("PRIMARY");
+
+                    b.HasIndex("VisitId");
 
                     b.HasIndex(new[] { "NurseId" }, "NurseID")
                         .HasDatabaseName("NurseID3");
@@ -847,9 +885,17 @@ namespace Hospital_Management_System.Migrations.Database
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("VisitsId"));
 
+                    b.Property<string>("AdmissionStatus")
+                        .HasMaxLength(30)
+                        .HasColumnType("enum('Admitted', 'Not Admitted', 'Discharged', 'Triage Pending')");
+
                     b.Property<int?>("AppointmentId")
                         .HasColumnType("int")
                         .HasColumnName("AppointmentID");
+
+                    b.Property<string>("ArrivalSource")
+                        .HasMaxLength(30)
+                        .HasColumnType("enum('Appointment', 'Walk-in')");
 
                     b.Property<DateTime?>("CheckinTime")
                         .ValueGeneratedOnAdd()
@@ -862,20 +908,50 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasColumnName("Checkout_Time");
 
                     b.Property<string>("Diagnosis")
+                        .HasMaxLength(30)
                         .HasColumnType("text");
+
+                    b.Property<int?>("DoctorId")
+                        .HasColumnType("int")
+                        .HasColumnName("DoctorID");
+
+                    b.Property<string>("PatientClass")
+                        .HasMaxLength(30)
+                        .HasColumnType("enum('Inpatient', 'Outpatient', 'Emergency', 'ER Referral')");
 
                     b.Property<int>("PatientId")
                         .HasColumnType("int")
                         .HasColumnName("PatientID");
 
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("varchar(12)")
+                        .HasColumnName("PublicID");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(30)
+                        .HasColumnType("enum('Active', 'Completed')");
+
                     b.Property<string>("Symptoms")
+                        .HasMaxLength(30)
                         .HasColumnType("text");
 
                     b.Property<string>("Treatment")
+                        .HasMaxLength(30)
+                        .HasColumnType("text");
+
+                    b.Property<string>("VisitNotes")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("VisitsId")
                         .HasName("PRIMARY");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
 
                     b.HasIndex(new[] { "AppointmentId" }, "AppointmentID");
 
@@ -1122,9 +1198,17 @@ namespace Hospital_Management_System.Migrations.Database
                         .IsRequired()
                         .HasConstraintName("testresult_ibfk_1");
 
+                    b.HasOne("Hospital_Management_System.Models.Visit", "Visit")
+                        .WithMany()
+                        .HasForeignKey("VisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Nurse");
 
                     b.Navigation("Test");
+
+                    b.Navigation("Visit");
                 });
 
             modelBuilder.Entity("Hospital_Management_System.Models.Visit", b =>
@@ -1134,6 +1218,10 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasForeignKey("AppointmentId")
                         .HasConstraintName("visits_ibfk_2");
 
+                    b.HasOne("Hospital_Management_System.Models.Doctor", "Doctor")
+                        .WithMany("Visits")
+                        .HasForeignKey("DoctorId");
+
                     b.HasOne("Hospital_Management_System.Models.Patient", "Patient")
                         .WithMany("Visits")
                         .HasForeignKey("PatientId")
@@ -1141,6 +1229,8 @@ namespace Hospital_Management_System.Migrations.Database
                         .HasConstraintName("visits_ibfk_1");
 
                     b.Navigation("Appointment");
+
+                    b.Navigation("Doctor");
 
                     b.Navigation("Patient");
                 });
@@ -1177,6 +1267,8 @@ namespace Hospital_Management_System.Migrations.Database
                     b.Navigation("ReferralReferringDoctors");
 
                     b.Navigation("ReferralSpecialistDoctors");
+
+                    b.Navigation("Visits");
                 });
 
             modelBuilder.Entity("Hospital_Management_System.Models.Nurse", b =>

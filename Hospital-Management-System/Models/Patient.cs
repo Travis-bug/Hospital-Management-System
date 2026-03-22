@@ -13,7 +13,7 @@ public partial class Patient
 {
     [Key]
     [Column("PatientID")]
-    public int PatientId { get; set; }
+    public int PatientId { get; init; }
 
     [StringLength(50)]
     public string FirstName { get; set; } = null!;
@@ -45,36 +45,37 @@ public partial class Patient
     
     
     [Column(TypeName = "enum('Enrolled','Walk-in')")]
+    [StringLength(50)]
     public string Type { get; set; } = null!;
 
     [Column("DoctorID")]
-    public int? DoctorId { get; set; }
+    public int? DoctorId { get; init; }
 
     [Column("PrimaryMemberID")]
-    public int? PrimaryMemberId { get; set; }
+    public int? PrimaryMemberId { get; init; }
 
     [Column(TypeName = "enum('Husband','Wife','Son','Daughter','Father','Mother','Other')")]
     [StringLength(50)]
-    public string? Relationship { get; set; }
+    public string? Relationship { get; init; } // mnight change back to set later
 
     
     [InverseProperty("Patient")]
-    public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+    public virtual ICollection<Appointment> Appointments { get; init; } = new List<Appointment>();
 
     [ForeignKey("DoctorId")]
     [InverseProperty("Patients")]
-    public virtual Doctor? Doctor { get; set; }
+    public virtual Doctor? Doctor { get; init; }
 
     [InverseProperty("Patient")]
-    public virtual ICollection<Fee> Fees { get; set; } = new List<Fee>();
+    public virtual ICollection<Fee> Fees { get; init; } = new List<Fee>();
 
     [InverseProperty("PrimaryMember")]
-    public virtual ICollection<Patient> InversePrimaryMember { get; set; } = new List<Patient>();
+    public virtual ICollection<Patient> InversePrimaryMember { get; init; } = new List<Patient>();
 
     [ForeignKey("PrimaryMemberId")]
     [InverseProperty("InversePrimaryMember")]
-    public virtual Patient? PrimaryMember { get; set; }
+    public virtual Patient? PrimaryMember { get; init; }
 
     [InverseProperty("Patient")]
-    public virtual ICollection<Visit> Visits { get; set; } = new List<Visit>();
+    public virtual ICollection<Visit> Visits { get; init; } = new List<Visit>();
 }

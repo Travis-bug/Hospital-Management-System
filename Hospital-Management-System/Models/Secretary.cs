@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +32,7 @@ public partial class Secretary
     [StringLength(10)]
     public string? PostalCode { get; set; }
     
+    [StringLength(30)]
     public string? IdentityUserId { get; set; }
 
     [InverseProperty("Secretary")]

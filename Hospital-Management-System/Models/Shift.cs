@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 namespace Hospital_Management_System.Models;
 [Table("Shift")]
 public partial class Shift
@@ -12,6 +9,7 @@ public partial class Shift
     public int ShiftId { get; set; }
 
     [Column(TypeName = "enum('Morning','Evening')")]
+    [StringLength(30)]
     public string ShiftType { get; set; } = null!;
 
     [Column(TypeName = "time")]

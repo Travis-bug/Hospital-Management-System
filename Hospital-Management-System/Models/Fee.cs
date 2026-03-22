@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 namespace Hospital_Management_System.Models;
@@ -14,8 +12,17 @@ public partial class Fee
     [Column("FeeID")]
     public int FeeId { get; set; }
 
-    
-    
+    /// <summary>
+    /// Represents the public identifier for an entity.
+    /// </summary>
+    /// <remarks>
+    /// This property is a required field with a maximum length of 12 characters.
+    /// It is used as a unique external identifier for the entity.
+    /// </remarks>
+    [Required]
+    [MaxLength(12)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = string.Empty; 
     
     [Column("PatientID")]
     public int? PatientId { get; set; }

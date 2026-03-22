@@ -12,6 +12,16 @@ public partial class Doctor
     [Column("DoctorID")]
     public int DoctorId { get; set; }
 
+    /// <summary>
+    /// Represents the public identifier for a doctor. This is a unique string value
+    /// with a maximum length of 12 characters that serves as a public, required
+    /// identifier for the Doctor entity.
+    /// </summary>
+    [Required]
+    [MaxLength(12)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = string.Empty; 
+
     [StringLength(50)]
     public string FirstName { get; set; } = null!;
 
@@ -33,6 +43,7 @@ public partial class Doctor
     [StringLength(10)]
     public string? PostalCode { get; set; }
     
+    [StringLength(30)]
     public string? IdentityUserId { get; set; }
 
     

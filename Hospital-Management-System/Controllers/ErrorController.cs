@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-namespace Clinic_Management.Controllers;
+namespace Hospital_Management_System.Controllers;
 public class ErrorController : Controller
 { 
     

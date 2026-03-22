@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +11,13 @@ public partial class AdministrativeAssistant
     [Column("AdminID")]
     public int AdminId { get; set; }
 
+    
+    [Required]
+    [MaxLength(12)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = string.Empty; 
+    
+    
     [StringLength(30)]
     public string FirstName { get; set; } = null!;
 
@@ -34,6 +39,8 @@ public partial class AdministrativeAssistant
     [StringLength(10)]
     public string? PostalCode { get; set; }
     
+    
+    [StringLength(30)]
     public string? IdentityUserId { get; set; }
     
     [InverseProperty("Admin")]

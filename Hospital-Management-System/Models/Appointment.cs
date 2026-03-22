@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +14,17 @@ public partial class Appointment
     [Column("AppointmentID")]
     public int AppointmentId { get; set; }
 
+
+    /// <summary>
+    /// A unique identifier for the entity, represented as a required string with a maximum length of 12.
+    /// This property is used to publicly reference the entity in a consistent manner.
+    /// </summary>
+    [Required]
+    [MaxLength(12)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = string.Empty; 
+    
+    
     [Column("PatientID")]
     public int? PatientId { get; set; }
 
@@ -31,9 +40,11 @@ public partial class Appointment
     public TimeOnly Time { get; set; }
 
     [Column(TypeName = "enum('Booked','Cancelled','Arrived','Checked In','Checked Out','LWT','No-Show')")]
+    [StringLength(30)]
     public string? Status { get; set; }
 
     [Column(TypeName = "text")]
+    [StringLength(30)]
     public string? Notes { get; set; }
 
     

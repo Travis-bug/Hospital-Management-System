@@ -1,5 +1,7 @@
 using System;
 using Hospital_Management_System.Data;
+using Hospital_Management_System.Services.ClinicalRecording;
+using Hospital_Management_System.Services.PatientManagement;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -32,8 +34,17 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 // Clinic DB (Group37Schema) -> add after scaffolding ClinicContext
  var clinicCs = builder.Configuration.GetConnectionString("ClinicDb")
              ?? throw new InvalidOperationException("Connection string 'ClinicDb' not found.");
+
  builder.Services.AddDbContext<ClinicContext>(options =>
      options.UseMySql(clinicCs, ServerVersion.AutoDetect(clinicCs)));
+
+// Application services
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IVisitService, VisitService>();
+builder.Services.AddScoped<ITestResultsService, TestResultService>();
+builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IPatientService, PatientService>();
 
 var app = builder.Build();
 

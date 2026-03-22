@@ -74,6 +74,9 @@
       <Compile Update="Services\Scheduling\SchedulingQueryService.cs">
         <DependentUpon>ISchedulingQureyService.cs</DependentUpon>
       </Compile>
+      <Compile Update="Services\ClinicalRecording\AuditService.cs">
+        <DependentUpon>IAuditService.cs</DependentUpon>
+      </Compile>
     </ItemGroup>
 
 </Project>

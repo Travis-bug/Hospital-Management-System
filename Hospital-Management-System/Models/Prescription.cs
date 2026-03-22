@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +13,16 @@ public partial class Prescription
     [Key]
     [Column("PrescriptionID")]
     public int PrescriptionId { get; set; }
+
+
+    /// <summary>
+    /// Represents a unique public identifier for the entity.
+    /// This property is required and has a maximum length of 12 characters.
+    /// </summary>
+    [Required]
+    [MaxLength(12)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = string.Empty; 
 
     [Column("VisitsID")]
     public int? VisitsId { get; set; }
