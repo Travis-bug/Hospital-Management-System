@@ -13,52 +13,146 @@ public class TestResultService : ITestResultsService
     }
 
 
-    public async Task<TestResult> AddTestResultAsync(TestResult Result) // NOTE:  the things inside <> are the return types STOP FORGETTING 
+    public async Task<TestResult> AddTestResultAsync(TestResult Result, int currentUserId, string role, string actorPublicId) // NOTE: the things inside <> are the return types STOP FORGETTING 
     {
-        Result.PublicTestId = SecureIdGenerator.GenerateID(10);  // generate unique string using entropy method
+        
+        // checks if the the test exists
+        var orderedTestExists = await _context.DiagnosticTests.AnyAsync(t => t.TestId == Result.TestId);
+            if (!orderedTestExists)
+            {
+                throw new KeyNotFoundException($"Ordered test with ID {Result.TestId} not found."); // ReVIEW
+            }
+
+        // checks if the test result already exists
+        var duplicateResultExists = await _context.TestResults.AnyAsync(r => r.TestId == Result.TestId); // REVIEW 
+            if (duplicateResultExists)
+            {
+                throw new InvalidOperationException($"A result already exists for test ID {Result.TestId}.");
+            }
+        // checks if the visit exists
+        var visit = await _context.Visits.FindAsync(Result.VisitId);
+            if (visit == null)
+            {
+                throw new KeyNotFoundException("The associated visit does not exist.");
+            }
 
 
-        // NOTE: write validation for if the ordered test exists and if there is already a result for that test
+            switch (role)
+            {
+                case "Doctor":
+                    if (visit.DoctorId != currentUserId)
+                    {
+                        throw new UnauthorizedAccessException("You are only authorized to add test results for your own assigned patients.");
+                    } break;
+                
+                case "Nurse":
+                    if (visit.AdmissionStatus == "Discharged")
+                    {
+                        throw new InvalidOperationException("Cannot add new test results to a discharged visit.");
+                       
+                    } break; 
+            }
+       
 
+        Result.PublicTestId = SecureIdGenerator.GenerateID(10);
         Result.ResultDate = DateTime.Now;
 
         _context.TestResults.Add(Result);
-
+        
+        var log = new AuditLog 
+        {
+            PerformedBy = actorPublicId,
+            ActionType = "Create",
+            Timestamp = DateTime.UtcNow,
+            Details = $"Added Test Result to Visit {visit.VisitPublicId}."
+        };
+        _context.AuditLogs.Add(log);
         await _context.SaveChangesAsync();
 
         return Result;
     }
 
+// Three-way Get Structured Data (3 Layers)=======================================
 
-
-    public async Task<TestResult?> GetPatientTestResultAsync(string PublicTestId)
+// 1. THE "MANY" (The Decision Tree) is used to get all the test results belonging to
+// the specific doctor and all the test results where the patient isn't discharged to the nurse 
+    public async Task<IEnumerable<TestResult>> GetTestResultsAsync(string role, int currentUserId, string? healthCardNo = null)
     {
-
-        var result = await _context.TestResults // get the test results from the database  
+        var query = _context.TestResults
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.PublicTestId == PublicTestId);
+            .Include(r => r.Test)
+            .Include(r => r.Visit)
+                .ThenInclude(v => v.Patient)
+            .AsQueryable();
+
+        // The Gatekeeper Switch
+        switch (role)
+        {
+            case "Doctor":
+                query = query.Where(r => r.Visit.DoctorId == currentUserId);
+                break;
+            case "Nurse":
+                // Nurses can see all active/non-discharged visit results
+                query = query.Where(r => r.Visit.AdmissionStatus != "Discharged");
+                break;
+            default:
+                throw new UnauthorizedAccessException("Role not authorized to view test results.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(healthCardNo))
+        {
+            query = query.Where(r => r.Visit.Patient.HealthCardNo == healthCardNo);
+        }
+
+        return await query.OrderByDescending(r => r.ResultDate).ToListAsync();
+    }
+
+
+
+
+// 2. THE "API ENTRY" (Security Layer) is used to get the test result details of ONE specific patient from the database
+    public async Task<TestResult?> GetTestResultByPublicIdAsync(string publicTestId, string role, int currentUserId, string actorPublicId)
+    {
+        var query = _context.TestResults
+            .AsNoTracking()
+            .Include(r => r.Test)
+            .AsQueryable();
+
+        // IDOR Protection Logic
+        switch (role)
+        {
+            case "Doctor":
+                query = query.Where(r => r.Visit.DoctorId == currentUserId);
+                break;
+            case "Nurse":
+                query = query.Where(r => r.Visit.AdmissionStatus != "Discharged");
+                break;
+            default:
+                throw new UnauthorizedAccessException("Role not authorized to view specific test results.");
+        }
+        
+        var result = await query.AsNoTracking().FirstOrDefaultAsync(r => r.PublicTestId == publicTestId);
+
+        if (result != null)
+        {
+            await _context.AuditLogs.AddAsync(new AuditLog
+            {
+                PerformedBy = actorPublicId, // this will be assigned to the user's Public ID in the controller
+                ActionType = "Read",
+                Timestamp = DateTime.UtcNow,
+                Details = $"Test result details viewed by {currentUserId}."
+            });
+                
+        }
         return result ?? throw new KeyNotFoundException("Test result not found");
-
-
-
     }
 
-
-    public async Task<IEnumerable<TestResult>> GetPatientTestResultsAsync(string healthCardNo)
+    
+    // 3. THE "WORKHORSE" (Internal Speed) is used inside the service for Updates/Business Logic.
+    public async Task <TestResult?> GetTestResultByIdAsync(int id)
     {
-
-        return await _context.TestResults
-            .AsNoTracking()
-            .Include(r => r.Test) // use the test entity to access and include the test details
-            .Include(r => r.Nurse) // use the visit entity to access and include the nurse details
-            .Include(r => r.Visit) // use the visit entity to access and include the patient details
-            .ThenInclude(v => v.Patient) // use the visit entity to access and include the patient details
-
-            .Where(r => r.Visit.Patient.HealthCardNo == healthCardNo) // filter by unique patient health card number 
-            .OrderByDescending(r => r.ResultDate) // sort in descending order by date
-            .ToListAsync();
-
-    }
+        return await _context.TestResults.FindAsync(id);
+    }   
 
 
 
@@ -71,9 +165,5 @@ public class TestResultService : ITestResultsService
             .AsNoTracking()// avoid tracking changes
             .Where(f => f.ResultDate >= startOfDay && f.ResultDate < endOfDay)
             .ToListAsync();
-
-
     }
-
-
 }

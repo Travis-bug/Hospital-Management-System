@@ -79,18 +79,9 @@ public class VisitService : IVisitService
                 visit.PatientClass = "Emergency";
                 visit.AdmissionStatus = "Triage Pending";
             }
-
-
-            try
-            {
-                var triageDoctor = await GetAvailableTriageDoctorAsync();
+            
+            var triageDoctor = await GetAvailableTriageDoctorAsync();
                 visit.DoctorId = triageDoctor!.DoctorId; // Assign the triage doctor's ID to the visit REVIEW
-            }
-            catch
-            {
-                throw new InvalidOperationException("No triage doctor available for walk-in.");
-            }
-
         }
 
         _context.Visits.Add(visit);

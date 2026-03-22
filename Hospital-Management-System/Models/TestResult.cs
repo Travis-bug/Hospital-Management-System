@@ -48,6 +48,9 @@ public partial class TestResult
     
     
     
+    
+    
+    
     [ForeignKey("VisitId")]
     public virtual Visit Visit { get; set; } = null!; // new 
     
