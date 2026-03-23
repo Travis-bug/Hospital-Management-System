@@ -44,8 +44,6 @@ public partial class TestResult
 
     [Column(TypeName = "timestamp")]
     public DateTime? ResultDate { get; set; }
-
-    
     
     
     

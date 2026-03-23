@@ -69,6 +69,6 @@ public interface IVisitService
     // Marks a visit as completed (discharge workflow).
     // Updates status and checkout time.
     // Authorization: Doctor can complete own visits only, Nurse can complete any non-discharged visit.
-    Task<bool> CompleteVisitAsync(int visitId, string role, int currentUserId);
+    Task<bool> CompleteVisitAsync(int visitId, string role, int currentUserId, string actorPublicId);
 
 }

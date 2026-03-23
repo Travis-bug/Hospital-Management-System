@@ -7,9 +7,11 @@ namespace Hospital_Management_System.Services.ClinicalRecording;
 public class TestResultService : ITestResultsService
 {
     private readonly ClinicContext _context;
-    public TestResultService(ClinicContext context)
+    private readonly IAuditService _auditService;
+    public TestResultService(ClinicContext context, IAuditService auditService)
     {
         _context = context;
+        _auditService = auditService;
     }
 
 
@@ -51,6 +53,8 @@ public class TestResultService : ITestResultsService
                         throw new InvalidOperationException("Cannot add new test results to a discharged visit.");
                        
                     } break; 
+                default:
+                    throw new UnauthorizedAccessException(" you are not authorized to add test results.");
             }
        
 
@@ -133,16 +137,17 @@ public class TestResultService : ITestResultsService
         
         var result = await query.AsNoTracking().FirstOrDefaultAsync(r => r.PublicTestId == publicTestId);
 
+        
         if (result != null)
         {
-            await _context.AuditLogs.AddAsync(new AuditLog
+            await _auditService.LogAsync(new AuditLog
             {
                 PerformedBy = actorPublicId, // this will be assigned to the user's Public ID in the controller
                 ActionType = "Read",
                 Timestamp = DateTime.UtcNow,
                 Details = $"Test result details viewed by {currentUserId}."
             });
-                
+            
         }
         return result ?? throw new KeyNotFoundException("Test result not found");
     }
@@ -152,18 +157,83 @@ public class TestResultService : ITestResultsService
     public async Task <TestResult?> GetTestResultByIdAsync(int id)
     {
         return await _context.TestResults.FindAsync(id);
-    }   
+    }
 
 
 
-    public async Task<IEnumerable<TestResult>> GetPatientTestResultsByDateAsync(DateTime date)
+    public async Task<IEnumerable<TestResult>> SearchTestResultsAsync(string keyword, string role, int currentUserId,
+        string actorPublicId)
     {
-        var startOfDay = date.Date; // get the start of the day and used var because it's a date (simple type) 
-        var endOfDay = startOfDay.AddDays(1); // get the end of the day
+        if (string.IsNullOrWhiteSpace(keyword))
+            return
+            [
+            ]; // this should return an empty list if the keyword is null or whitespace {TEST} or change to Enumerable.Empty<Visit>()
+        keyword = keyword.ToLower();
 
-        return await _context.TestResults // get the test results from the database 
-            .AsNoTracking()// avoid tracking changes
-            .Where(f => f.ResultDate >= startOfDay && f.ResultDate < endOfDay)
-            .ToListAsync();
+        var query = _context.TestResults
+            .AsNoTracking()
+            .Include(r => r.Test)
+
+            .Include(r => r.Visit)
+            .ThenInclude(v => v.Patient)
+            .AsQueryable();
+
+        switch (role)
+        {
+            case "Doctor":
+                query = query.Where(r => r.Visit.DoctorId == currentUserId);
+                break;
+            case "Nurse":
+                query = query.Where(r => r.Visit.AdmissionStatus != "Discharged");
+                break;
+            default:
+                throw new UnauthorizedAccessException("Unauthorized search attempt.");
+        }
+        // Searches by Patient Name or Test Name
+        var results = await query.Where(r => 
+            r.Visit.Patient.FirstName.ToLower().Contains(keyword) || // TEST 
+            r.Visit.Patient.LastName.ToLower().Contains(keyword) || //TEST 
+            r.Test.TestName.ToLower().Contains(keyword) //TEST 
+        ).ToListAsync();
+
+        
+        // 4. THE LOG (Audit)
+        await _auditService.LogAsync(new AuditLog {
+            PerformedBy = actorPublicId,
+            ActionType = "Search",
+            Timestamp = DateTime.UtcNow,
+            Details = $"Searched Test Results for: {keyword}"
+        });
+
+        return results;
+    } 
+
+
+        
+
+
+    public async Task<IEnumerable<TestResult>> GetTestResultsByDateAsync(DateTime date, string role, int currentUserId)
+    {
+        var startOfDay = date.Date;
+        var endOfDay = startOfDay.AddDays(1);
+
+        var query = _context.TestResults
+            .AsNoTracking()
+            .Where(r => r.ResultDate >= startOfDay && r.ResultDate < endOfDay);
+
+        // Validate
+        switch (role)
+        {
+            case "Doctor":
+                query = query.Where(r => r.Visit.DoctorId == currentUserId);
+                break;
+            case "Nurse":
+                query = query.Where(r => r.Visit.AdmissionStatus != "Discharged");
+                break;
+            default:
+                throw new UnauthorizedAccessException("Role not authorized to filter by date.");
+        }
+
+        return await query.ToListAsync();
     }
 }

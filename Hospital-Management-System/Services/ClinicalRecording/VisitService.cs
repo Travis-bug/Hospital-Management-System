@@ -45,15 +45,15 @@ public class VisitService : IVisitService
             visit.ArrivalSource = "Appointment";
 
             ///////////// sub branch one ////////////////////////////////   
-            if (visit.PatientClass == "OutPatient")
+            if (visit.PatientClass == "Outpatient")
             {
-                visit.AdmissionStatus = "Not-Admitted";
+                visit.AdmissionStatus = "Not Admitted";
             }
             /////////////////////////////////////////////////
 
 
             /////////////// sub branch two ///////////////////////////////////
-            else if (visit.PatientClass == "InPatient")
+            else if (visit.PatientClass == "Inpatient")
             {
                 visit.AdmissionStatus = "Admitted";
                 //  visit.AdmissionDate = DateTime.Now; // Log the start of their stay
@@ -208,21 +208,22 @@ public class VisitService : IVisitService
                .AsNoTracking()
                  .Include(v => v.Patient)
                  .AsQueryable();
-
-        if (role == "Doctor")
+        
+        switch (role)
         {
-            query = query.Where(v => v.DoctorId == currentUserId);
+            case "Doctor": 
+                query = query.Where(v => v.DoctorId == currentUserId);
+                break; 
+            
+            case "Nurse":
+                query = query.Where(v => v.AdmissionStatus != "Discharged");
+                break; 
+            
+            default : 
+                throw new UnauthorizedAccessException("You are not authorized to perform this action");
         }
-
-        else if (role == "Nurse")
-        {
-            query = query.Where(v => v.AdmissionStatus != "Discharged");
-        }
-        else
-        {
-            throw new UnauthorizedAccessException("You are not authorized to perform this action");
-        }
-
+        
+        
 
         var results = await query
                  .Where(v => v.Patient != null &&
@@ -311,7 +312,7 @@ public class VisitService : IVisitService
 
 
 
-    public async Task<bool> CompleteVisitAsync(int visitId, string role, int currentUserId)
+    public async Task<bool> CompleteVisitAsync(int visitId, string role, int currentUserId, string actorPublicId)
     {
         var visit = await GetVisitsById(visitId);
         if (visit == null)
@@ -339,7 +340,7 @@ public class VisitService : IVisitService
         
         var log = new AuditLog 
         {
-            PerformedBy = currentUserId.ToString(), // Or actorPublicId if you pass it in!
+            PerformedBy = actorPublicId, 
             ActionType = "Complete",
             Timestamp = DateTime.UtcNow,
             Details = $"Visit {visit.VisitPublicId} completed and discharged."
