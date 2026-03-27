@@ -174,7 +174,7 @@ public class VisitService : IVisitService
                 PerformedBy = actorPublicId, // this will be assigned to the user's Public ID in the controller
                 ActionType = "Read",
                 Timestamp = DateTime.UtcNow,
-                Details = $"Visit details viewed by {currentUserId}."
+                Details = $"Visit details viewed by {actorPublicId}."
             });
         }
         return visit;
@@ -186,7 +186,7 @@ public class VisitService : IVisitService
 
     // 3. THE "WORKHORSE" (Internal Speed)
     // Used inside the service for Updates/Business Logic.
-    public async Task<Visit?> GetVisitsById(int Id)
+    public async Task<Visit?> GetVisitsByIdAsync(int Id)
     {
         return await _context.Visits.FindAsync(Id);
 
@@ -276,7 +276,7 @@ public class VisitService : IVisitService
 
     public async Task UpdateClinicalNotesAsync(int visitId, string symptoms, string diagnosis, string treatment, int currentUserId, string actorPublicId)
     {
-        var visit = await GetVisitsById(visitId); // get the visit by id (this is the "WORKHORSE"````)
+        var visit = await GetVisitsByIdAsync(visitId); // get the visit by id (this is the "WORKHORSE"````)
 
         if (visit == null)
         {
@@ -314,7 +314,7 @@ public class VisitService : IVisitService
 
     public async Task<bool> CompleteVisitAsync(int visitId, string role, int currentUserId, string actorPublicId)
     {
-        var visit = await GetVisitsById(visitId);
+        var visit = await GetVisitsByIdAsync(visitId);
         if (visit == null)
         {
             throw new KeyNotFoundException("Visit not found");

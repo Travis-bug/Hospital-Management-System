@@ -13,7 +13,7 @@ public interface IVisitService
     // ================= GET (STRUCTURED DATA) =================
 
     // Retrieves a single visit by its primary key.
-    Task<Visit?> GetVisitsById(int Id);
+    Task<Visit?> GetVisitsByIdAsync(int Id);
 
 
     // Retrieves a single visit by its PublicId.

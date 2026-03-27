@@ -6,6 +6,7 @@ namespace Hospital_Management_System.Models;
 [Table("Fee")]
 [Index("DoctorId", Name = "DoctorID")]
 [Index("PatientId", Name = "PatientID")]
+[Index("VisitId", Name = "VisitID")]
 public partial class Fee
 {
     [Key]
@@ -24,38 +25,34 @@ public partial class Fee
     [Column("PublicID")] 
     public string PublicId { get; set; } = string.Empty; 
     
+    [Column("DoctorID")]
+    public int? DoctorId { get; set; }
+    
     [Column("PatientID")]
     public int? PatientId { get; set; }
-
+    
+    [Column("VisitID")]
+    public int VisitId { get; set; }
     
     
-
+    
+    
+    
     [Column("PatientName")]
     [StringLength(100)]
     public string PatientName { get; set; } = null!; 
 
+    [StringLength(100)]
+    public string ServiceName { get; set; } = null!;
     
-    
-    [Column("DoctorID")]
-    public int? DoctorId { get; set; }
-
+    public bool IsPaid { get; set; } = false; 
     
     
     
     [Column(TypeName = "datetime")]
     public DateTime? FeeDate { get; set; }
-
-    
-    
-    [StringLength(100)]
-    public string ServiceName { get; set; } = null!;
-
-
-    public bool IsPaid { get; set; } = false; 
-    
     
     public DateTime LastModified { get; set; } = DateTime.UtcNow; 
-    
     
     
     [Precision(10, 2)]
@@ -63,13 +60,17 @@ public partial class Fee
 
     
     
+    
+    
     [ForeignKey("DoctorId")]
     [InverseProperty("Fees")]
     public virtual Doctor? Doctor { get; set; }
-
-    
     
     [ForeignKey("PatientId")]
     [InverseProperty("Fees")]
     public virtual Patient? Patient { get; set; }
+    
+    [ForeignKey("VisitId")]
+    [InverseProperty("Fees")]
+    public virtual Visit Visit { get; set; } = null!;
 }

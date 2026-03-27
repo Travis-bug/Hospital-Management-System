@@ -17,53 +17,55 @@ public class TestResultService : ITestResultsService
 
     public async Task<TestResult> AddTestResultAsync(TestResult Result, int currentUserId, string role, string actorPublicId) // NOTE: the things inside <> are the return types STOP FORGETTING 
     {
-        
+
         // checks if the the test exists
         var orderedTestExists = await _context.DiagnosticTests.AnyAsync(t => t.TestId == Result.TestId);
-            if (!orderedTestExists)
-            {
-                throw new KeyNotFoundException($"Ordered test with ID {Result.TestId} not found."); // ReVIEW
-            }
+        if (!orderedTestExists)
+        {
+            throw new KeyNotFoundException($"Ordered test with ID {Result.TestId} not found."); // ReVIEW
+        }
 
         // checks if the test result already exists
         var duplicateResultExists = await _context.TestResults.AnyAsync(r => r.TestId == Result.TestId); // REVIEW 
-            if (duplicateResultExists)
-            {
-                throw new InvalidOperationException($"A result already exists for test ID {Result.TestId}.");
-            }
+        if (duplicateResultExists)
+        {
+            throw new InvalidOperationException($"A result already exists for test ID {Result.TestId}.");
+        }
         // checks if the visit exists
         var visit = await _context.Visits.FindAsync(Result.VisitId);
-            if (visit == null)
-            {
-                throw new KeyNotFoundException("The associated visit does not exist.");
-            }
+        if (visit == null)
+        {
+            throw new KeyNotFoundException("The associated visit does not exist.");
+        }
 
 
-            switch (role)
-            {
-                case "Doctor":
-                    if (visit.DoctorId != currentUserId)
-                    {
-                        throw new UnauthorizedAccessException("You are only authorized to add test results for your own assigned patients.");
-                    } break;
-                
-                case "Nurse":
-                    if (visit.AdmissionStatus == "Discharged")
-                    {
-                        throw new InvalidOperationException("Cannot add new test results to a discharged visit.");
-                       
-                    } break; 
-                default:
-                    throw new UnauthorizedAccessException(" you are not authorized to add test results.");
-            }
-       
+        switch (role)
+        {
+            case "Doctor":
+                if (visit.DoctorId != currentUserId)
+                {
+                    throw new UnauthorizedAccessException("You are only authorized to add test results for your own assigned patients.");
+                }
+                break;
+
+            case "Nurse":
+                if (visit.AdmissionStatus == "Discharged")
+                {
+                    throw new InvalidOperationException("Cannot add new test results to a discharged visit.");
+
+                }
+                break;
+            default:
+                throw new UnauthorizedAccessException(" you are not authorized to add test results.");
+        }
+
 
         Result.PublicTestId = SecureIdGenerator.GenerateID(10);
         Result.ResultDate = DateTime.Now;
 
         _context.TestResults.Add(Result);
-        
-        var log = new AuditLog 
+
+        var log = new AuditLog
         {
             PerformedBy = actorPublicId,
             ActionType = "Create",
@@ -76,10 +78,10 @@ public class TestResultService : ITestResultsService
         return Result;
     }
 
-// Three-way Get Structured Data (3 Layers)=======================================
+    // Three-way Get Structured Data (3 Layers)=======================================
 
-// 1. THE "MANY" (The Decision Tree) is used to get all the test results belonging to
-// the specific doctor and all the test results where the patient isn't discharged to the nurse 
+    // 1. THE "MANY" (The Decision Tree) is used to get all the test results belonging to
+    // the specific doctor and all the test results where the patient isn't discharged to the nurse 
     public async Task<IEnumerable<TestResult>> GetTestResultsAsync(string role, int currentUserId, string? healthCardNo = null)
     {
         var query = _context.TestResults
@@ -114,7 +116,7 @@ public class TestResultService : ITestResultsService
 
 
 
-// 2. THE "API ENTRY" (Security Layer) is used to get the test result details of ONE specific patient from the database
+    // 2. THE "API ENTRY" (Security Layer) is used to get the test result details of ONE specific patient from the database
     public async Task<TestResult?> GetTestResultByPublicIdAsync(string publicTestId, string role, int currentUserId, string actorPublicId)
     {
         var query = _context.TestResults
@@ -134,10 +136,10 @@ public class TestResultService : ITestResultsService
             default:
                 throw new UnauthorizedAccessException("Role not authorized to view specific test results.");
         }
-        
+
         var result = await query.AsNoTracking().FirstOrDefaultAsync(r => r.PublicTestId == publicTestId);
 
-        
+
         if (result != null)
         {
             await _auditService.LogAsync(new AuditLog
@@ -147,14 +149,14 @@ public class TestResultService : ITestResultsService
                 Timestamp = DateTime.UtcNow,
                 Details = $"Test result details viewed by {currentUserId}."
             });
-            
+
         }
         return result ?? throw new KeyNotFoundException("Test result not found");
     }
 
-    
+
     // 3. THE "WORKHORSE" (Internal Speed) is used inside the service for Updates/Business Logic.
-    public async Task <TestResult?> GetTestResultByIdAsync(int id)
+    public async Task<TestResult?> GetTestResultByIdAsync(int id)
     {
         return await _context.TestResults.FindAsync(id);
     }
@@ -166,8 +168,7 @@ public class TestResultService : ITestResultsService
     {
         if (string.IsNullOrWhiteSpace(keyword))
             return
-            [
-            ]; // this should return an empty list if the keyword is null or whitespace {TEST} or change to Enumerable.Empty<Visit>()
+            []; // this should return an empty list if the keyword is null or whitespace {TEST} or change to Enumerable.Empty<Visit>()
         keyword = keyword.ToLower();
 
         var query = _context.TestResults
@@ -189,16 +190,18 @@ public class TestResultService : ITestResultsService
             default:
                 throw new UnauthorizedAccessException("Unauthorized search attempt.");
         }
+
         // Searches by Patient Name or Test Name
-        var results = await query.Where(r => 
+        var results = await query.Where(r =>
             r.Visit.Patient.FirstName.ToLower().Contains(keyword) || // TEST 
             r.Visit.Patient.LastName.ToLower().Contains(keyword) || //TEST 
             r.Test.TestName.ToLower().Contains(keyword) //TEST 
         ).ToListAsync();
 
-        
+
         // 4. THE LOG (Audit)
-        await _auditService.LogAsync(new AuditLog {
+        await _auditService.LogAsync(new AuditLog
+        {
             PerformedBy = actorPublicId,
             ActionType = "Search",
             Timestamp = DateTime.UtcNow,
@@ -206,10 +209,10 @@ public class TestResultService : ITestResultsService
         });
 
         return results;
-    } 
+    }
 
 
-        
+
 
 
     public async Task<IEnumerable<TestResult>> GetTestResultsByDateAsync(DateTime date, string role, int currentUserId)

@@ -63,7 +63,7 @@ namespace Hospital_Management_System.Services.PatientManagement
                 .FirstOrDefaultAsync(p => p.PatientId == patient.PatientId);
 
             if (existingPatient == null)
-                throw new Exception("Patient not found");
+                throw new KeyNotFoundException("Patient not found");
             
             var isDuplicate = await _context.Patients
                 .AnyAsync(p => p.HealthCardNo == patient.HealthCardNo && p.PatientId != patient.PatientId);

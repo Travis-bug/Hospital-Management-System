@@ -23,21 +23,20 @@ public partial class Appointment
     [MaxLength(12)]
     [Column("PublicID")] 
     public string PublicId { get; set; } = string.Empty; 
-    
-    
-    [Column("PatientID")]
-    public int? PatientId { get; set; }
+
+
+    [Column("PatientID")] public int PatientId { get; set; }
 
     [Column("DoctorID")]
-    public int? DoctorId { get; set; }
+    public int? DoctorId { get; init; }
 
     [Column("NurseID")]
-    public int? NurseId { get; set; }
+    public int? NurseId { get; init; }
 
-    public DateOnly Date { get; set; }
-
-    [Column(TypeName = "time")]
-    public TimeOnly Time { get; set; }
+    // The ? makes it required in the database (unless you explicitly allow nulls)
+    public DateTime AppointmentDate { get; set; } // NOTE: this is new 
+    
+    public DateTime? BookedAt { get; set; } = DateTime.UtcNow;
 
     [Column(TypeName = "enum('Booked','Cancelled','Arrived','Checked In','Checked Out','LWT','No-Show')")]
     [StringLength(30)]
