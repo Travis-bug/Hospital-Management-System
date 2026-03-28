@@ -60,7 +60,7 @@ public class TestResultService : ITestResultsService
         }
 
 
-        Result.PublicTestId = SecureIdGenerator.GenerateID(10);
+        Result.PublicTestId = SecureIdGenerator.GenerateID(15, "RES");
         Result.ResultDate = DateTime.Now;
 
         _context.TestResults.Add(Result);

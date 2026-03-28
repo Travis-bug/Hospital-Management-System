@@ -7,16 +7,17 @@ namespace Hospital_Management_System.Models;
 [Table("Administrative_Assistant")]
 public partial class AdministrativeAssistant
 {
+    //========================================
     [Key]
     [Column("AdminID")]
     public int AdminId { get; set; }
 
     
     [Required]
-    [MaxLength(12)]
+    [MaxLength(20)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty; 
-    
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(10, "Ad");
+    // ========================================
     
     [StringLength(30)]
     public string FirstName { get; set; } = null!;

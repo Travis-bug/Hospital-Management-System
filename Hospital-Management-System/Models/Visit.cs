@@ -19,7 +19,7 @@ public partial class Visit
     [Column("PublicID")] 
     public string VisitPublicId { get; set; } = string.Empty; // new for encrypted public secure string
     
-    //These 2 go hand in hand if the patient walks in the visit becomes active, and the type becomes admitted
+    //These 2 go hand in hand if the patient walks in the visit becoming active, and the type becomes admitted
     //if the patient's visit is completed, the status changes to discharged
     
     //=========================================================
@@ -125,6 +125,10 @@ public partial class Visit
     
     [InverseProperty("Visit")]
     public virtual ICollection<Referral> Referrals { get; set; } = new List<Referral>();
+    
+    
+    [InverseProperty("Visit")]
+    public virtual ICollection<Fee> Fees { get; set; } = new List<Fee>();
     
     
     [ForeignKey("DoctorId")]

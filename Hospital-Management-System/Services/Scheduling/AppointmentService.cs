@@ -96,7 +96,7 @@ public class AppointmentService : IAppointmentService
                 PerformedBy = actorPublicId,
                 ActionType = "Read",
                 Timestamp = DateTime.UtcNow,
-                Details = $"Appointment details viewed by {currentUserId}."
+                Details = $"Appointment details viewed by {actorPublicId}."
             });
         }
 
@@ -112,13 +112,13 @@ public class AppointmentService : IAppointmentService
         }
         
         // checks if the patient exists
-        var patientExists = await _context.Patients.AnyAsync(p => p.PatientId == appointment.PatientId);
-        if (!patientExists)
+        var patients = await _context.Patients.FirstOrDefaultAsync(p => p.PatientId == appointment.PatientId);
+        if (patients == null)
         {
-            throw new KeyNotFoundException($"Patient with ID {appointment.Patient.PatientPublicId} not found."); // REVIEW
+            throw new KeyNotFoundException("Cannot create appointment for non existing patient."); // REVIEW
         }   
         
-        appointment.PublicId = SecureIdGenerator.GenerateID(12);
+        appointment.PublicId = SecureIdGenerator.GenerateID(15);
         appointment.BookedAt = DateTime.Now; 
         appointment.Status = "Booked";
         
@@ -127,7 +127,7 @@ public class AppointmentService : IAppointmentService
             PerformedBy = actorPublicId,
             ActionType = "Create",
             Timestamp = DateTime.UtcNow,
-            Details = $"Appointment created for patient {appointment.Patient.PatientPublicId}." //REVIEW 
+            Details = $"Appointment created for patient {patients.PatientPublicId}." //REVIEW 
         };
         
         _context.Appointments.Add(appointment);

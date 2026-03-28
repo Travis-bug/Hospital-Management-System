@@ -4,10 +4,17 @@ namespace Hospital_Management_System.Models;
 [Table("Shift")]
 public partial class Shift
 {
+    //==============================================================
     [Key]
     [Column("ShiftID")]
-    public int ShiftId { get; set; }
-
+    public int ShiftId { get; init; }
+    
+    [Required]
+    [StringLength(20)]
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15);
+    //==============================================================
+    
+    
     [Column(TypeName = "enum('Morning','Evening')")]
     [StringLength(30)]
     public string ShiftType { get; set; } = null!;

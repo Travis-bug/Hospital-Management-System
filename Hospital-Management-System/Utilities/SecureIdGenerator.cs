@@ -1,22 +1,35 @@
 using System.Security.Cryptography;
+using System.Text;
 
-namespace Hospital_Management_System.Utilities;
-
-
-public static class SecureIdGenerator
+namespace Hospital_Management_System.Utilities
 {
-    public static string GenerateID (int length = 12)
+    public static class SecureIdGenerator
     {
-        // Added your special characters here
-        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // removed 0, O, 1 and i to prevent human reading error
+        // Removed vowels and look-alike characters (like 1, l, I, 0, O) to make IDs easy to read!
+        private static readonly char[] chars = "ABCDEFGHJKMNPQUSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789".ToCharArray();
 
-        return string.Create(length, chars, (buffer, alphabet) =>
+        public static string GenerateID(int length = 15, string prefix = "")
         {
-            for (int i = 0; i < buffer.Length; i++)
+            var data = new byte[length];
+            using (var crypto = RandomNumberGenerator.Create())
             {
-                // Using true entropy to pick from the expanded character set
-                buffer[i] = alphabet[RandomNumberGenerator.GetInt32(alphabet.Length)];
+                crypto.GetBytes(data);
             }
-        });
+            
+            var result = new StringBuilder(length);
+            foreach (var b in data)
+            {
+                result.Append(chars[b % chars.Length]);
+            }
+
+            // If they provided a prefix, attach it with an underscore!
+            if (!string.IsNullOrWhiteSpace(prefix))
+            {
+                return $"{prefix}_{result.ToString()}";
+            }
+
+            // Otherwise, just return the random string
+            return result.ToString();
+        }
     }
 }

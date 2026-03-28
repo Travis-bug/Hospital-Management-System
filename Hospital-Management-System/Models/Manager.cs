@@ -7,6 +7,8 @@ namespace Hospital_Management_System.Models;
 [Table("Manager")]
 public partial class Manager
 {
+    
+    //=================================
     [Key]
     [Column("ManagerID")]
     public int ManagerId { get; set; }
@@ -18,7 +20,8 @@ public partial class Manager
     [Required]
     [MaxLength(12)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty; 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(10, "MA");
+    //=====================================
 
     [StringLength(20)]
     public string FirstName { get; set; } = null!;

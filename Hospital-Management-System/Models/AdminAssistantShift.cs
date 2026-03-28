@@ -8,10 +8,17 @@ namespace Hospital_Management_System.Models;
 [Index("AdminId", Name = "AdminID")]
 [Index("ShiftId", Name = "ShiftID")]
 public partial class AdminAssistantShift
-{
+{ 
+    //==============================================================
     [Key]
     [Column("AdminShiftID")]
     public int AdminShiftId { get; set; }
+    
+    [Required]
+    [StringLength(10)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "SH"); // public id 
+    //==============================================================
 
     public DateOnly Date { get; set; }
 

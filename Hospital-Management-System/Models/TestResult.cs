@@ -29,9 +29,9 @@ public partial class TestResult
     /// This property has a maximum length of 12 characters and must be provided for the entity.
     /// </remarks>
     [Required]
-    [MaxLength(12)]
+    [StringLength(20)]
     [Column("PublicTestId")] 
-    public string PublicTestId { get; set; } = string.Empty; 
+    public string PublicTestId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "RES");
     
     
     [Column("NurseID")]

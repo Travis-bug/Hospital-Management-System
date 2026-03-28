@@ -21,9 +21,9 @@ public partial class Fee
     /// It is used as a unique external identifier for the entity.
     /// </remarks>
     [Required]
-    [MaxLength(12)]
+    [MaxLength(20)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty; 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "FEE");
     
     [Column("DoctorID")]
     public int? DoctorId { get; set; }
@@ -72,5 +72,5 @@ public partial class Fee
     
     [ForeignKey("VisitId")]
     [InverseProperty("Fees")]
-    public virtual Visit Visit { get; set; } = null!;
+    public virtual Visit?  Visit { get; set; } = null!;
 }

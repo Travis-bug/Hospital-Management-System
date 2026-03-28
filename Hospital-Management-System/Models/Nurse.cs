@@ -7,6 +7,7 @@ namespace Hospital_Management_System.Models;
 [Table("Nurse")]
 public partial class Nurse
 {
+    //==========================================
     [Key]
     [Column("NurseID")]
     public int NurseId { get; set; }
@@ -17,9 +18,10 @@ public partial class Nurse
     /// This property is required and has a maximum length of 12 characters.
     /// </summary>
     [Required]
-    [MaxLength(12)]
+    [StringLength(20)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty;
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(10, "NR");
+    //=================================================
 
     [StringLength(50)]
     public string FirstName { get; set; } = null!;
@@ -45,6 +47,8 @@ public partial class Nurse
     [StringLength(30)]
     public string? IdentityUserId { get; set; }
 
+    
+    
     [InverseProperty("Nurse")]
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
@@ -56,4 +60,8 @@ public partial class Nurse
 
     [InverseProperty("Nurse")]
     public virtual ICollection<TestResult> TestResults { get; set; } = new List<TestResult>();
+    
+    // This completes the bridge from the Visit table!
+    [InverseProperty("Nurse")]
+    public virtual ICollection<Visit> Visits { get; set; } = new List<Visit>();
 }

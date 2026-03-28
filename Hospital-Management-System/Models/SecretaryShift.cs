@@ -8,9 +8,16 @@ namespace Hospital_Management_System.Models;
 [Index("ShiftId", Name = "ShiftID")]
 public partial class SecretaryShift
 {
+    //==============================================================
     [Key]
     [Column("Secretary_ShiftID")]
-    public int SecretaryShiftId { get; set; }
+    public int SecretaryShiftId { get; init; }
+    
+    [Required]
+    [StringLength(10)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "SH");
+    //==============================================================
 
     [Column("SecretaryID")]
     public int SecretaryId { get; set; }

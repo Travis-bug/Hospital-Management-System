@@ -12,6 +12,9 @@ public partial class PatientVital
     [Key]
     [Column("VitalsID")]
     public int VitalsId { get; set; }
+    
+    [Required]
+    [MaxLength(20)]
 
     [Column("VisitsID")]
     public int VisitsId { get; set; }

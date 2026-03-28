@@ -7,9 +7,17 @@ namespace Hospital_Management_System.Models;
 [Table("Secretary")]
 public partial class Secretary
 {
+    //==========================================
     [Key]
     [Column("SecretaryID")]
     public int SecretaryId { get; set; }
+    
+    
+    [Required]
+    [MaxLength(20)]
+    [Column("PublicID")]
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(10, "SC");
+    //=========================================
 
     [StringLength(50)]
     public string FirstName { get; set; } = null!;

@@ -20,9 +20,9 @@ public partial class Prescription
     /// This property is required and has a maximum length of 12 characters.
     /// </summary>
     [Required]
-    [MaxLength(12)]
+    [StringLength(20)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty; 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "PRE");
 
     [Column("VisitsID")]
     public int? VisitsId { get; set; }

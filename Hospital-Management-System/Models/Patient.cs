@@ -11,14 +11,17 @@ namespace Hospital_Management_System.Models;
 [Index("PrimaryMemberId", Name = "PrimaryMemberID")]
 public partial class Patient
 {
+    //==========================================
     [Key]
     [Column("PatientID")]
     public int PatientId { get; init; }
     
     [Required]
-    [MaxLength(10)]
+    [StringLength(20)]
     [Column("PublicID")] 
-    public string PatientPublicId { get; set; } = string.Empty;
+    public string PatientPublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(10, "PA");
+    //===========================================
+    
 
     [StringLength(50)]
     public string FirstName { get; set; } = null!;

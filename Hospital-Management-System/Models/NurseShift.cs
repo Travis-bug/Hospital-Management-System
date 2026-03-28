@@ -8,9 +8,16 @@ namespace Hospital_Management_System.Models;
 [Index("ShiftId", Name = "ShiftID")]
 public partial class NurseShift
 {
+    //==============================================================
     [Key]
     [Column("NurseShiftID")]
     public int NurseShiftId { get; set; }
+    
+    [Required]
+    [StringLength(10)]
+    [Column("PublicID")] 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "SH");
+    //==============================================================
 
     public DateOnly Date { get; set; }
 

@@ -18,9 +18,9 @@ public partial class DiagnosticTest
     /// This property is required and constrained to a maximum length of 12 characters.
     /// </summary>
     [Required]
-    [MaxLength(12)]
+    [StringLength(20)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty; 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "TES");
 
 
 

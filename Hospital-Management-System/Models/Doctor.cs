@@ -1,4 +1,4 @@
-﻿
+﻿using Hospital_Management_System.Utilities;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -8,6 +8,7 @@ namespace Hospital_Management_System.Models;
 [Table("Doctor")]
 public partial class Doctor
 {
+    
     [Key]
     [Column("DoctorID")]
     public int DoctorId { get; set; }
@@ -18,9 +19,9 @@ public partial class Doctor
     /// identifier for the Doctor entity.
     /// </summary>
     [Required]
-    [MaxLength(12)]
+    [StringLength(20)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty; 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(10, "DR");
 
     [StringLength(50)]
     public string FirstName { get; set; } = null!;

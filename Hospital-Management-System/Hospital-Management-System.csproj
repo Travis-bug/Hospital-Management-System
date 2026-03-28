@@ -56,9 +56,6 @@
       <Compile Update="Services\ClinicalRecording\VitalsService.cs">
         <DependentUpon>IVitalsService.cs</DependentUpon>
       </Compile>
-      <Compile Update="Services\PatientManagement\PatientSearchEngineService.cs">
-        <DependentUpon>IPatientSearchEngineService.cs</DependentUpon>
-      </Compile>
       <Compile Update="Services\PatientManagement\PatientService.cs">
         <DependentUpon>IPatientService.cs</DependentUpon>
       </Compile>
