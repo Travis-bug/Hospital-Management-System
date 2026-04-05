@@ -20,7 +20,7 @@ public partial class Manager
     [Required]
     [MaxLength(12)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(10, "MA");
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(9, "MA");
     //=====================================
 
     [StringLength(20)]
@@ -44,5 +44,6 @@ public partial class Manager
     [StringLength(10)]
     public string? PostalCode { get; set; }
     
+    [MaxLength(450)]
     public string? IdentityUserId { get; set; }
 }

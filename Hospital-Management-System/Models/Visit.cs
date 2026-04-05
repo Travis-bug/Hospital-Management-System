@@ -17,7 +17,7 @@ public partial class Visit
     [Required]
     [MaxLength(12)]
     [Column("PublicID")] 
-    public string VisitPublicId { get; set; } = string.Empty; // new for encrypted public secure string
+    public string VisitPublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(8, "VIS"); // new for encrypted public secure string
     
     //These 2 go hand in hand if the patient walks in the visit becoming active, and the type becomes admitted
     //if the patient's visit is completed, the status changes to discharged

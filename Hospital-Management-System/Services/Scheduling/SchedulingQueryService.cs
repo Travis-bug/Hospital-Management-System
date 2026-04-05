@@ -115,8 +115,7 @@ public class SchedulingQueryService : ISchedulingQueryService
 
  public async Task<IEnumerable<DailyRosterDto>> GetDailyRosterAsync(DateTime date, string role)
  {
-     // 1. THE BOUNCER: Only front-desk and management need to see everyone
-     if (role != "Secretary" && role != "Admin")
+     if (role != "Manager" && role != "Admin")
      {
          throw new UnauthorizedAccessException("You are not authorized to view the hospital-wide roster.");
      }
@@ -173,7 +172,7 @@ public class SchedulingQueryService : ISchedulingQueryService
          {
              ShiftPublicId = ss.PublicId,
              StaffName = $"{ss.Secretary.FirstName} {ss.Secretary.LastName}",
-             Role = "Nurse",
+             Role = "Secretary",
              ShiftType = ss.Shift.ShiftType,
              StartTime = ss.Shift.StartTime,
              EndTime = ss.Shift.EndTime
@@ -192,7 +191,7 @@ public class SchedulingQueryService : ISchedulingQueryService
          {
              ShiftPublicId = aas.PublicId,
              StaffName = $"{aas.Admin.FirstName} {aas.Admin.LastName}",
-             Role = "Nurse",
+             Role = "Admin",
              ShiftType = aas.Shift.ShiftType,
              StartTime = aas.Shift.StartTime,
              EndTime = aas.Shift.EndTime

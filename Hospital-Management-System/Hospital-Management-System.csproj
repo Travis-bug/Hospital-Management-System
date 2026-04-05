@@ -7,6 +7,9 @@
         <UserSecretsId>aspnet-Hospital-Management-System-3dceef4b-d483-40b2-94cd-a0d451a0afe7</UserSecretsId>
         <RootNamespace>Hospital_Management_System</RootNamespace>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591</NoWarn>
+
     </PropertyGroup>
     
     <ItemGroup>
@@ -23,6 +26,7 @@
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.11" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     </ItemGroup>
 
     <ItemGroup>

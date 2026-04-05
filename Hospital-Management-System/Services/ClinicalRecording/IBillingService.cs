@@ -1,14 +1,14 @@
 using Hospital_Management_System.Models;
+using Hospital_Management_System.Models.ViewModels;
 
 namespace Hospital_Management_System.Services.ClinicalRecording;
 
 public interface IBillingService
 {
     Task<Fee> CreateBillingAsync(Fee fee, int currentUserId, string role, string actorPublicId);
-    Task<IEnumerable<Fee>> CreateBillingRangeAsync(IEnumerable<Fee> fees);
 
-    Task UpdateFeeAsync(Fee fee, string role, int currentUserId);
-    Task DeleteFeeAsync(int feeId, string role, int currentUserId);
+    Task UpdateFeeAsync(string PublicFeeId, UpdateBillingDto dto, string role, int currentUserId, string actorPublicId);
+    Task DeleteFeeAsync(int feeId, string role, string actorPublicId);
     Task MarkAsPaidAsync(int feeId);
 
     Task<Fee?> GetBillByIdAsync(int feeId); // work horse 

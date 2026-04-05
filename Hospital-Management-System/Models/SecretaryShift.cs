@@ -16,7 +16,7 @@ public partial class SecretaryShift
     [Required]
     [StringLength(10)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "SH");
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(6, "SSH");
     //==============================================================
 
     [Column("SecretaryID")]

@@ -78,6 +78,7 @@ public partial class ClinicContext : DbContext
             entity.HasKey(e => e.AdminId).HasName("PRIMARY");
 
             entity.Property(e => e.HourlyRate).HasDefaultValueSql("'20.00'");
+            entity.Property(e => e.IdentityUserId).HasMaxLength(450);
         });
 
         modelBuilder.Entity<Appointment>(entity =>
@@ -109,6 +110,7 @@ public partial class ClinicContext : DbContext
         modelBuilder.Entity<Doctor>(entity =>
         {
             entity.HasKey(e => e.DoctorId).HasName("PRIMARY");
+            entity.Property(e => e.IdentityUserId).HasMaxLength(450);
         });
 
         modelBuilder.Entity<DoctorsShift>(entity =>
@@ -136,6 +138,7 @@ public partial class ClinicContext : DbContext
         modelBuilder.Entity<Manager>(entity =>
         {
             entity.HasKey(e => e.ManagerId).HasName("PRIMARY");
+            entity.Property(e => e.IdentityUserId).HasMaxLength(450);
         });
 
         modelBuilder.Entity<Nurse>(entity =>
@@ -143,6 +146,8 @@ public partial class ClinicContext : DbContext
             entity.HasKey(e => e.NurseId).HasName("PRIMARY");
 
             entity.Property(e => e.HourlyRate).HasDefaultValueSql("'35.00'");
+            
+            entity.Property(e => e.IdentityUserId).HasMaxLength(450);
         });
 
         modelBuilder.Entity<NurseShift>(entity =>
@@ -167,6 +172,7 @@ public partial class ClinicContext : DbContext
             entity.HasOne(d => d.Doctor).WithMany(p => p.Patients).HasConstraintName("patient_ibfk_1");
 
             entity.HasOne(d => d.PrimaryMember).WithMany(p => p.InversePrimaryMember).HasConstraintName("patient_ibfk_2");
+           
         });
 
         modelBuilder.Entity<PatientVital>(entity =>
@@ -217,6 +223,9 @@ public partial class ClinicContext : DbContext
             entity.HasKey(e => e.SecretaryId).HasName("PRIMARY");
 
             entity.Property(e => e.HourlyRate).HasDefaultValueSql("'25.00'");
+            
+            entity.Property(e => e.IdentityUserId).HasMaxLength(450);
+
         });
 
         modelBuilder.Entity<SecretaryShift>(entity =>

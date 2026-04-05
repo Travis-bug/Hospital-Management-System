@@ -1,5 +1,6 @@
 using Hospital_Management_System.Data;
 using Hospital_Management_System.Models;
+using Hospital_Management_System.Models.ViewModels;
 using Hospital_Management_System.Utilities; // 
 using Microsoft.EntityFrameworkCore;
 namespace Hospital_Management_System.Services.ClinicalRecording;
@@ -56,26 +57,16 @@ public class BillingService : IBillingService
         return fee;
     }
 
+    
 
-
-
-    // =========================================================================================================
-    public async Task<IEnumerable<Fee>> CreateBillingRangeAsync(IEnumerable<Fee> fees)
+    public async Task UpdateFeeAsync(string PublicFeeId, UpdateBillingDto dto, string role, int currentUserId, string actorPublicId)
     {
-        await _context.Fees.AddRangeAsync(fees);
-        await _context.SaveChangesAsync();
-        return fees;
-    }
-
-    // =========================================================================================================
-
-
-    public async Task UpdateFeeAsync(Fee fee, string role, int currentUserId)
-    {
-        var existingFee = await _context.Fees.FirstOrDefaultAsync(f => f.FeeId == fee.FeeId); //REVIEW !!!!!!!!!!
+        var existingFee = await _context.Fees.FirstOrDefaultAsync(f => f.PublicId == PublicFeeId); //REVIEW !!!!!!!!!!
+        
         if (existingFee == null)
             throw new KeyNotFoundException("Fee not found.");
-
+  
+        
         switch (role)
         {
             case "Doctor":
@@ -89,35 +80,48 @@ public class BillingService : IBillingService
             default:
                 throw new UnauthorizedAccessException("Role not authorized to update fees.");
         }
-        existingFee.Amount = fee.Amount;
-        existingFee.ServiceName = fee.ServiceName;
+        existingFee.Amount = dto.Amount;
+        existingFee.PatientName = dto.PatientName;
+        existingFee.ServiceName = dto.ServiceName;
+        existingFee.LastModified = DateTime.UtcNow;
+
+        await _auditService.LogAsync(new AuditLog
+        {
+            PerformedBy = actorPublicId, 
+            ActionType = "Update",
+            Timestamp = DateTime.UtcNow,
+            Details = $"Fee with ID {existingFee.FeeId} was updated."
+
+        });
 
         await _context.SaveChangesAsync();
     }
 
 
     // =========================================================================================================
-    public async Task DeleteFeeAsync(int feeId, string role, int currentUserId)
+    public async Task DeleteFeeAsync(int feeId, string role, string actorPublicId)
     {
         var existingFee = await _context.Fees.FirstOrDefaultAsync(f => f.FeeId == feeId);
         
         if (existingFee == null)
             throw new KeyNotFoundException("Fee not found.");
-
+        
         switch (role)
         {
-            case "Doctor":
-                if (existingFee.DoctorId != currentUserId)
-                    throw new UnauthorizedAccessException("Doctors can only delete fees for their own patients.");
-                break;
-            case "Secretary":
-            case "Manager":
-            case "Nurse":
+            case "Secretary ": // NOTE: only secretaries can delete fees. (deny access to anyone that's not the secretary) 
                 break;
             default:
                 throw new UnauthorizedAccessException("Role not authorized to delete fees.");
         }
         _context.Fees.Remove(existingFee);
+        
+        await _auditService.LogAsync(new AuditLog
+        {
+            PerformedBy = actorPublicId,
+            ActionType = "Delete",
+            Timestamp = DateTime.UtcNow,
+            Details = $"Fee with ID {feeId} was deleted."
+        }); 
         await _context.SaveChangesAsync();
     }
 
@@ -131,6 +135,7 @@ public class BillingService : IBillingService
             .ExecuteUpdateAsync(setter => setter
                 .SetProperty(f => f.IsPaid, true) // mark as paid
                 .SetProperty(f => f.LastModified, DateTime.UtcNow)); // update last-modified date
+        
     }
 
 

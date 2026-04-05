@@ -16,7 +16,7 @@ public partial class NurseShift
     [Required]
     [StringLength(10)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(15, "SH");
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(6, "NSH");
     //==============================================================
 
     public DateOnly Date { get; set; }

@@ -1,5 +1,6 @@
 using Hospital_Management_System.Data;
 using Hospital_Management_System.Models;
+using Hospital_Management_System.Models.ViewModels;
 using Hospital_Management_System.Services.ClinicalRecording;
 using Hospital_Management_System.Utilities; 
 using Microsoft.EntityFrameworkCore;
@@ -8,13 +9,11 @@ namespace Hospital_Management_System.Services.Scheduling;
 public class AppointmentService : IAppointmentService
 {
     private readonly ClinicContext _context;
-    private readonly IVisitService _visitService;
     private readonly IAuditService _auditService;
     
-    public AppointmentService(ClinicContext context, IVisitService visitService, IAuditService auditService)
+    public AppointmentService(ClinicContext context, IAuditService auditService)
     {
         _context = context;
-        _visitService = visitService;
         _auditService = auditService;
     }
 
@@ -40,7 +39,8 @@ public class AppointmentService : IAppointmentService
                     throw new UnauthorizedAccessException("You are only authorized to view your own schedule.");
                 }
                 break;
-            
+            case "Admin":
+            case "Manager":
             case "Secretary":
                 break; 
             
@@ -79,6 +79,8 @@ public class AppointmentService : IAppointmentService
             case "Doctor":
                 query = query.Where(f => f.DoctorId == currentUserId);
                 break;
+            case "Admin":
+            case "Manager":
             case "Secretary":
                 break;
             
@@ -104,30 +106,54 @@ public class AppointmentService : IAppointmentService
     }
 
 
-    public async Task<Appointment> BookAppointmentAsync(Appointment appointment, string role, string actorPublicId)
+    public async Task<Appointment> BookAppointmentAsync(BookAppointmentDto dto, string role, string actorPublicId)
     {
-        if (role != "Secretary")
+        if (role is not "Secretary" and not "Admin")
         {
-            throw new UnauthorizedAccessException("You are not authorized to create a billing record.");
+            throw new UnauthorizedAccessException("You are not authorized to create an appointment.");
         }
-        
-        // checks if the patient exists
-        var patients = await _context.Patients.FirstOrDefaultAsync(p => p.PatientId == appointment.PatientId);
-        if (patients == null)
+
+        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientPublicId == dto.PatientPublicId);
+        if (patient == null)
         {
-            throw new KeyNotFoundException("Cannot create appointment for non existing patient."); // REVIEW
-        }   
-        
-        appointment.PublicId = SecureIdGenerator.GenerateID(15);
-        appointment.BookedAt = DateTime.Now; 
-        appointment.Status = "Booked";
+            throw new KeyNotFoundException("Patient not found.");
+        }
+
+        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.PublicId == dto.DoctorPublicId);
+        if (doctor == null)
+        {
+            throw new KeyNotFoundException("Doctor not found.");
+        }
+
+        var hasConflict = await _context.Appointments.AnyAsync(appointment =>
+            appointment.DoctorId == doctor.DoctorId
+            && appointment.AppointmentDate == dto.AppointmentDate
+            && appointment.Status != "Cancelled"
+            && appointment.Status != "No-Show"
+            && appointment.Status != "LWT");
+
+        if (hasConflict)
+        {
+            throw new InvalidOperationException("The doctor is already booked for that appointment time.");
+        }
+
+        var appointment = new Appointment
+        {
+            PublicId = SecureIdGenerator.GenerateID(8, "APT"),
+            PatientId = patient.PatientId,
+            DoctorId = doctor.DoctorId,
+            AppointmentDate = dto.AppointmentDate,
+            Notes = dto.Notes,
+            BookedAt = DateTime.UtcNow,
+            Status = "Booked"
+        };
         
         var log = new AuditLog
         {
             PerformedBy = actorPublicId,
             ActionType = "Create",
             Timestamp = DateTime.UtcNow,
-            Details = $"Appointment created for patient {patients.PatientPublicId}." //REVIEW 
+            Details = $"Appointment created for patient {patient.PatientPublicId}."
         };
         
         _context.Appointments.Add(appointment);
@@ -147,13 +173,15 @@ public class AppointmentService : IAppointmentService
         {
             case "Doctor":
                 if (appointment.DoctorId != currentUserId)
-                    throw new UnauthorizedAccessException("Doctors can only update fees for their own patients.");
+                    throw new UnauthorizedAccessException("Doctors can only cancel their own appointments.");
                 break;
             
+            case "Admin":
+            case "Manager":
             case "Secretary": // deny access to anyone that's not the secretary
                 break;
             default:
-                throw new UnauthorizedAccessException("Role not authorized to update fees.");
+                throw new UnauthorizedAccessException("Role not authorized to cancel appointments.");
         }
 
         switch (appointment.Status)
@@ -188,4 +216,3 @@ public class AppointmentService : IAppointmentService
       
     }
     
-

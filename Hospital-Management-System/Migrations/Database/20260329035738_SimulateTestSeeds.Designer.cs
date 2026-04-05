@@ -4,16 +4,19 @@ using Hospital_Management_System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Hospital_Management_System.Database
+namespace Hospital_Management_System.Migrations.Database
 {
     [DbContext(typeof(ClinicContext))]
-    partial class ClinicContextModelSnapshot : ModelSnapshot
+    [Migration("20260329035738_SimulateTestSeeds")]
+    partial class SimulateTestSeeds
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -97,8 +100,8 @@ namespace Hospital_Management_System.Database
                         .HasDefaultValueSql("'20.00'");
 
                     b.Property<string>("IdentityUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("varchar(450)");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -295,8 +298,8 @@ namespace Hospital_Management_System.Database
                         .HasColumnType("varchar(50)");
 
                     b.Property<string>("IdentityUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("varchar(450)");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
 
                     b.Property<bool>("IsTriageQualified")
                         .HasColumnType("tinyint(1)");
@@ -467,8 +470,7 @@ namespace Hospital_Management_System.Database
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<string>("IdentityUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("varchar(450)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -524,8 +526,8 @@ namespace Hospital_Management_System.Database
                         .HasDefaultValueSql("'35.00'");
 
                     b.Property<string>("IdentityUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("varchar(450)");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -858,8 +860,8 @@ namespace Hospital_Management_System.Database
                         .HasDefaultValueSql("'25.00'");
 
                     b.Property<string>("IdentityUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("varchar(450)");
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("LastName")
                         .IsRequired()

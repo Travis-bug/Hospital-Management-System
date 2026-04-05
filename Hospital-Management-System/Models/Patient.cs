@@ -44,20 +44,19 @@ public partial class Patient
     [StringLength(100)] 
     public string? Email { get; set; } = ""; 
     
+    [StringLength(30)]
+    [Column(TypeName = "enum('Male','Female')")]
+    public string? Gender { get; set; }
     
-
     [StringLength(20)]
     public string HealthCardNo { get; set; } = null!;
-
-    
-    
     
     [Column(TypeName = "enum('Enrolled','Walk-in')")]
     [StringLength(50)]
     public string Type { get; set; } = null!;
 
     [Column("DoctorID")]
-    public int? DoctorId { get; init; }
+    public int? DoctorId { get; set; }
 
     [Column("PrimaryMemberID")]
     public int? PrimaryMemberId { get; init; }

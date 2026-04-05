@@ -40,7 +40,7 @@ public partial class Secretary
     [StringLength(10)]
     public string? PostalCode { get; set; }
     
-    [StringLength(30)]
+    [StringLength(450)]
     public string? IdentityUserId { get; set; }
 
     [InverseProperty("Secretary")]

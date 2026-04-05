@@ -22,7 +22,7 @@ public partial class Appointment
     [Required]
     [MaxLength(12)]
     [Column("PublicID")] 
-    public string PublicId { get; set; } = string.Empty; 
+    public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(8, "APT"); 
 
 
     [Column("PatientID")] public int PatientId { get; set; }

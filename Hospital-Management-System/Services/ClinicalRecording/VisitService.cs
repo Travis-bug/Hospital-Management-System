@@ -1,7 +1,9 @@
-using Hospital_Management_System.Models;
-using Hospital_Management_System.Utilities; // Where your IdGenerator lives
-using Microsoft.EntityFrameworkCore;
 using Hospital_Management_System.Data;
+using Hospital_Management_System.Models;
+using Hospital_Management_System.Models.ViewModels;
+using Hospital_Management_System.Utilities;
+using Microsoft.EntityFrameworkCore;
+
 namespace Hospital_Management_System.Services.ClinicalRecording;
 
 public class VisitService : IVisitService
@@ -15,55 +17,69 @@ public class VisitService : IVisitService
         _auditService = auditService;
     }
 
-
     public async Task<Doctor?> GetAvailableTriageDoctorAsync()
     {
         return await _context.Doctors
-                   .Where(d => d.IsTriageQualified == true)
+                   .Where(d => d.IsTriageQualified)
                    .FirstOrDefaultAsync()
                ?? throw new InvalidOperationException("No triage doctor available.");
     }
 
-
-
-    public async Task<Visit> CreateVisitAsync(Visit visit, string actorPublicId, string role, int currentUserId, int assignedDoctorId)
+    public async Task<Visit> CreateVisitAsync(CreateVisitDto dto, string actorPublicId, string role, int currentUserId)
     {
-        visit.VisitPublicId = SecureIdGenerator.GenerateID(10); // Using the entropy method
-        visit.Status = "Active"; // Set the status to Active for appointments
-        visit.CheckinTime = DateTime.Now; // Log the start of their stay
+        var patient = await _context.Patients
+            .FirstOrDefaultAsync(existingPatient => existingPatient.PatientPublicId == dto.PatientPublicId)
+            ?? throw new KeyNotFoundException("Patient not found.");
 
-        if (role == "Doctor" && assignedDoctorId != currentUserId) // check this out later (REVIEW)
+        Appointment? appointment = null;
+        if (!string.IsNullOrWhiteSpace(dto.AppointmentPublicId))
         {
-            // Doctors can only create visits for themselves
-            throw new InvalidOperationException("Doctors cannot assign visits to other doctors.");
+            appointment = await _context.Appointments
+                .FirstOrDefaultAsync(existingAppointment => existingAppointment.PublicId == dto.AppointmentPublicId)
+                ?? throw new KeyNotFoundException("Appointment not found.");
+
+            if (appointment.PatientId != patient.PatientId)
+            {
+                throw new InvalidOperationException("The appointment does not belong to the supplied patient.");
+            }
         }
 
-        //======Decision tree for visit arrival source=================// 
-        if (visit.AppointmentId != null)
+        var visit = new Visit
         {
+            VisitPublicId = SecureIdGenerator.GenerateID(8, "VIS"),
+            PatientId = patient.PatientId,
+            AppointmentId = appointment?.AppointmentId,
+            PatientClass = dto.PatientClass,
+            AdmissionStatus = dto.AdmissionStatus,
+            ArrivalSource = appointment == null ? "Walk-in" : "Appointment",
+            Symptoms = dto.Symptoms,
+            Diagnosis = dto.Diagnosis,
+            Treatment = dto.Treatment,
+            Status = "Active",
+            CheckinTime = DateTime.UtcNow,
+            VisitNotes = string.Empty
+        };
 
+        if (appointment != null)
+        {
             visit.ArrivalSource = "Appointment";
+            visit.DoctorId = appointment.DoctorId;
 
-            ///////////// sub branch one ////////////////////////////////   
             if (visit.PatientClass == "Outpatient")
             {
                 visit.AdmissionStatus = "Not Admitted";
             }
-            /////////////////////////////////////////////////
-
-
-            /////////////// sub branch two ///////////////////////////////////
             else if (visit.PatientClass == "Inpatient")
             {
                 visit.AdmissionStatus = "Admitted";
-                //  visit.AdmissionDate = DateTime.Now; // Log the start of their stay
             }
-            //////////////////////////////////////////////////
+            else if (string.IsNullOrWhiteSpace(visit.AdmissionStatus))
+            {
+                visit.AdmissionStatus = "Not Admitted";
+            }
 
-
+            appointment.Status = "Checked In";
         }
-
-
         else
         {
             visit.ArrivalSource = "Walk-in";
@@ -73,48 +89,41 @@ public class VisitService : IVisitService
                 visit.AdmissionStatus = "Priority Triage";
                 visit.VisitNotes = "ER Referral detected: Patient set to Priority Triage.";
             }
-
-            else // Default to Emergency / Self-Referral
+            else
             {
-                visit.PatientClass = "Emergency";
+                visit.PatientClass = string.IsNullOrWhiteSpace(visit.PatientClass) ? "Emergency" : visit.PatientClass;
                 visit.AdmissionStatus = "Triage Pending";
             }
-            
-            var triageDoctor = await GetAvailableTriageDoctorAsync();
-                visit.DoctorId = triageDoctor!.DoctorId; // Assign the triage doctor's ID to the visit REVIEW
+
+            var triageDoctor = await GetAvailableTriageDoctorAsync()
+                               ?? throw new InvalidOperationException("No triage doctor available.");
+            visit.DoctorId = triageDoctor.DoctorId;
+        }
+
+        if (role == "Doctor" && visit.DoctorId != currentUserId)
+        {
+            throw new UnauthorizedAccessException("Doctors can only create visits assigned to themselves.");
         }
 
         _context.Visits.Add(visit);
 
-
-        var log = new AuditLog // This logs the search query 
+        _context.AuditLogs.Add(new AuditLog
         {
             PerformedBy = actorPublicId,
             ActionType = "Create",
             Timestamp = DateTime.UtcNow,
             Details = $"Visit created: {visit.VisitPublicId}."
-        };
+        });
 
-
-        _context.AuditLogs.Add(log);
         await _context.SaveChangesAsync();
         return visit;
     }
 
-
-
-    //====================== Get Structed Data (3 Layers)=======================================
-
-
-    // 1. THE "MANY" (The Decision Tree)
-    // Handles Dashboard (DoctorId only) and Profile (Both IDs)
-    // Used by the UI to get a list of visits for a specific doctor
     public async Task<IEnumerable<Visit>> GetVisitsAsync(string role, int currentUserId)
     {
         var query = _context.Visits
             .AsNoTracking()
             .AsQueryable();
-        //============================= Decision Tree for visit filtering ================================//
 
         switch (role)
         {
@@ -133,22 +142,12 @@ public class VisitService : IVisitService
         return await query.ToListAsync();
     }
 
-
-
-
-
-    // 2. THE "API ENTRY" (Security Layer)
-    // Used by Controllers to Protect the real Database PKs.
-    // used to get the visit details of ONE specific patient from the database
     public async Task<Visit?> GetVisitByPublicIdAsync(string publicId, string role, int currentUserId, string actorPublicId)
     {
         var query = _context.Visits
             .AsNoTracking()
             .AsQueryable();
 
-
-
-        // 2. THE SECURITY SANDBOX (IDOR Protection)
         switch (role)
         {
             case "Doctor":
@@ -161,9 +160,7 @@ public class VisitService : IVisitService
 
             default:
                 throw new UnauthorizedAccessException("Role not authorized to view clinical notes.");
-
         }
-
 
         var visit = await query.FirstOrDefaultAsync(v => v.VisitPublicId == publicId);
 
@@ -171,82 +168,65 @@ public class VisitService : IVisitService
         {
             await _auditService.LogAsync(new AuditLog
             {
-                PerformedBy = actorPublicId, // this will be assigned to the user's Public ID in the controller
+                PerformedBy = actorPublicId,
                 ActionType = "Read",
                 Timestamp = DateTime.UtcNow,
                 Details = $"Visit details viewed by {actorPublicId}."
             });
         }
+
         return visit;
     }
 
-
-
-
-
-    // 3. THE "WORKHORSE" (Internal Speed)
-    // Used inside the service for Updates/Business Logic.
-    public async Task<Visit?> GetVisitsByIdAsync(int Id)
+    public async Task<Visit?> GetVisitsByIdAsync(int id)
     {
-        return await _context.Visits.FindAsync(Id);
-
+        return await _context.Visits.FindAsync(id);
     }
-
-    //===============================================================================================//
-
-
-
 
     public async Task<IEnumerable<Visit>> SearchVisitsAsync(string keyword, string role, string actorPublicId, int currentUserId)
     {
         if (string.IsNullOrWhiteSpace(keyword))
-            return []; // this should return an empty list if the keyword is null or whitespace {TEST} or change to Enumerable.Empty<Visit>()
+        {
+            return [];
+        }
+
         keyword = keyword.ToLower();
 
-
         var query = _context.Visits
-               .AsNoTracking()
-                 .Include(v => v.Patient)
-                 .AsQueryable();
-        
+            .AsNoTracking()
+            .Include(v => v.Patient)
+            .AsQueryable();
+
         switch (role)
         {
-            case "Doctor": 
+            case "Doctor":
                 query = query.Where(v => v.DoctorId == currentUserId);
-                break; 
-            
+                break;
+
             case "Nurse":
                 query = query.Where(v => v.AdmissionStatus != "Discharged");
-                break; 
-            
-            default : 
+                break;
+
+            default:
                 throw new UnauthorizedAccessException("You are not authorized to perform this action");
         }
-        
-        
 
         var results = await query
-                 .Where(v => v.Patient != null &&
-                     ((v.Patient.FirstName != null && v.Patient.FirstName.ToLower().Contains(keyword)) ||
-                      (v.Patient.LastName != null && v.Patient.LastName.ToLower().Contains(keyword))))
-                 .ToListAsync();
+            .Where(v => v.Patient != null &&
+                        ((v.Patient.FirstName != null && v.Patient.FirstName.ToLower().Contains(keyword)) ||
+                         (v.Patient.LastName != null && v.Patient.LastName.ToLower().Contains(keyword))))
+            .ToListAsync();
 
-
-
-        await _auditService.LogAsync(new AuditLog // This logs the search querey 
+        await _auditService.LogAsync(new AuditLog
         {
             PerformedBy = actorPublicId,
             ActionType = "Search",
             Timestamp = DateTime.UtcNow,
             Details = $"Search query: {keyword}"
-
         });
 
         return results;
-
     }
-
-
 
     public async Task<IEnumerable<Visit>> GetVisitsByDateAsync(DateTime date, string role, int currentUserId)
     {
@@ -262,9 +242,11 @@ public class VisitService : IVisitService
             case "Doctor":
                 query = query.Where(v => v.DoctorId == currentUserId);
                 break;
+
             case "Nurse":
                 query = query.Where(v => v.AdmissionStatus != "Discharged");
                 break;
+
             default:
                 throw new UnauthorizedAccessException("Role not authorized to filter visits by date.");
         }
@@ -272,49 +254,11 @@ public class VisitService : IVisitService
         return await query.ToListAsync();
     }
 
-
-
-    public async Task UpdateClinicalNotesAsync(int visitId, string symptoms, string diagnosis, string treatment, int currentUserId, string actorPublicId)
+    public async Task UpdateClinicalNotesAsync(string visitPublicId, UpdateClinicalNotesDto dto, int currentUserId, string role, string actorPublicId)
     {
-        var visit = await GetVisitsByIdAsync(visitId); // get the visit by id (this is the "WORKHORSE"````)
+        var visit = await _context.Visits
+            .FirstOrDefaultAsync(v => v.VisitPublicId == visitPublicId);
 
-        if (visit == null)
-        {
-            throw new KeyNotFoundException("Visit not found");
-        }
-
-        if (visit.DoctorId != currentUserId)
-        {
-            throw new UnauthorizedAccessException("You are not authorized to perform this action");
-        }
-
-
-        visit.Symptoms = symptoms;
-        visit.Diagnosis = diagnosis;
-        visit.Treatment = treatment;
-
-        //
-        // Whenever you are changing the database (Creating, updating, or Deleting), you group everything into one big "shopping cart" and check out exactly once at the very end using await _context.SaveChangesAsync().
-        //
-        var log = new AuditLog // This logs the search query 
-        {
-            PerformedBy = actorPublicId,
-            ActionType = "Update",
-            Timestamp = DateTime.UtcNow,
-            Details = $"Clinical notes updated for visit {visit.VisitPublicId}."
-        };
-        _context.AuditLogs.Add(log);
-
-
-
-        await _context.SaveChangesAsync();
-    }
-
-
-
-    public async Task<bool> CompleteVisitAsync(int visitId, string role, int currentUserId, string actorPublicId)
-    {
-        var visit = await GetVisitsByIdAsync(visitId);
         if (visit == null)
         {
             throw new KeyNotFoundException("Visit not found");
@@ -324,32 +268,85 @@ public class VisitService : IVisitService
         {
             case "Doctor":
                 if (visit.DoctorId != currentUserId)
-                    throw new UnauthorizedAccessException("Doctors can only complete their own visits.");
+                {
+                    throw new UnauthorizedAccessException("Doctors can only update their own visits.");
+                }
+
                 break;
+
             case "Nurse":
                 if (visit.AdmissionStatus == "Discharged")
+                {
                     throw new InvalidOperationException("Visit is already discharged.");
+                }
+
                 break;
+
+            default:
+                throw new UnauthorizedAccessException("Role not authorized to update clinical notes.");
+        }
+
+        visit.Symptoms = dto.Symptoms;
+        visit.Diagnosis = dto.Diagnosis;
+        visit.Treatment = dto.Treatment;
+        visit.AdmissionStatus = dto.AdmissionStatus;
+        visit.VisitNotes = dto.VisitNotes;
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            PerformedBy = actorPublicId,
+            ActionType = "Update",
+            Timestamp = DateTime.UtcNow,
+            Details = $"Clinical notes updated for visit {visit.VisitPublicId}."
+        });
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> CompleteVisitAsync(string visitPublicId, string role, int currentUserId, string actorPublicId)
+    {
+        var visit = await _context.Visits
+            .FirstOrDefaultAsync(existingVisit => existingVisit.VisitPublicId == visitPublicId);
+        if (visit == null)
+        {
+            throw new KeyNotFoundException("Visit not found");
+        }
+
+        switch (role)
+        {
+            case "Doctor":
+                if (visit.DoctorId != currentUserId)
+                {
+                    throw new UnauthorizedAccessException("Doctors can only complete their own visits.");
+                }
+
+                break;
+
+            case "Nurse":
+                if (visit.AdmissionStatus == "Discharged")
+                {
+                    throw new InvalidOperationException("Visit is already discharged.");
+                }
+
+                break;
+
             default:
                 throw new UnauthorizedAccessException("Role not authorized to complete visits.");
         }
 
         visit.Status = "Completed";
-        visit.CheckoutTime = DateTime.Now;
-        
-        
-        var log = new AuditLog 
+        visit.AdmissionStatus = "Discharged";
+        visit.CheckoutTime = DateTime.UtcNow;
+
+        _context.AuditLogs.Add(new AuditLog
         {
-            PerformedBy = actorPublicId, 
+            PerformedBy = actorPublicId,
             ActionType = "Complete",
             Timestamp = DateTime.UtcNow,
             Details = $"Visit {visit.VisitPublicId} completed and discharged."
-        };
-        _context.AuditLogs.Add(log);
-        
-        
+        });
+
         await _context.SaveChangesAsync();
         return true;
     }
-
 }

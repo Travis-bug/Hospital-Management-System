@@ -1,4 +1,5 @@
 using Hospital_Management_System.Models;
+using Hospital_Management_System.Models.ViewModels;
 
 namespace Hospital_Management_System.Services.ClinicalRecording;
 
@@ -7,7 +8,7 @@ public interface IVisitService
 
     // Creates a new visit record.
     // Handles business logic such as triage assignment and PublicId generation.
-    Task<Visit> CreateVisitAsync(Visit visit, string actorPublicId, string role, int currentUserId, int assignedDoctorId);
+    Task<Visit> CreateVisitAsync(CreateVisitDto dto, string actorPublicId, string role, int currentUserId);
 
 
     // ================= GET (STRUCTURED DATA) =================
@@ -56,7 +57,7 @@ public interface IVisitService
 
     // Updates clinical notes for a visit without modifying other fields.
     // Used by doctors during or after consultation.
-    Task UpdateClinicalNotesAsync(int visitId, string symptoms, string diagnosis, string treatment, int currentUserId, string actorPublicId);
+    Task UpdateClinicalNotesAsync(string visitPublicId, UpdateClinicalNotesDto dto, int currentUserId, string role, string actorPublicId); 
 
 
 
@@ -69,6 +70,6 @@ public interface IVisitService
     // Marks a visit as completed (discharge workflow).
     // Updates status and checkout time.
     // Authorization: Doctor can complete own visits only, Nurse can complete any non-discharged visit.
-    Task<bool> CompleteVisitAsync(int visitId, string role, int currentUserId, string actorPublicId);
+    Task<bool> CompleteVisitAsync(string visitPublicId, string role, int currentUserId, string actorPublicId);
 
 }
