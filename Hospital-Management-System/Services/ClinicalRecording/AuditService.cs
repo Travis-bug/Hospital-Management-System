@@ -6,6 +6,10 @@ namespace Hospital_Management_System.Services.ClinicalRecording;
 public class AuditService : IAuditService
 {
     private readonly ClinicContext _context;
+    private const int PerformedByMaxLength = 30;
+    private const int EntityPublicIdMaxLength = 50;
+    private const int DetailsMaxLength = 50;
+    private const int EntityNameMaxLength = 30;
 
     public AuditService(ClinicContext context)
     {
@@ -26,7 +30,27 @@ public class AuditService : IAuditService
             // as your model's `= DateTime.UtcNow` already handles it beautifully!
        // }
 
-        _context.AuditLogs.Add(auditLog);
+        var sanitizedAuditLog = new AuditLog
+        {
+            PerformedBy = Truncate(auditLog.PerformedBy, PerformedByMaxLength),
+            EntityPublicId = Truncate(auditLog.EntityPublicId, EntityPublicIdMaxLength),
+            ActionType = auditLog.ActionType,
+            Details = Truncate(auditLog.Details, DetailsMaxLength),
+            EntityName = Truncate(auditLog.EntityName, EntityNameMaxLength),
+            Timestamp = auditLog.Timestamp
+        };
+
+        _context.AuditLogs.Add(sanitizedAuditLog);
         await _context.SaveChangesAsync();
+    }
+
+    private static string Truncate(string? value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+        {
+            return value ?? string.Empty;
+        }
+
+        return value[..maxLength];
     }
 }

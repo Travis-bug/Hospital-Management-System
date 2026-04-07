@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Hospital_Management_System.Data;
 using Hospital_Management_System.Models;
@@ -29,7 +30,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddProblemDetails();
 
 // MVC + Identity UI endpoints
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        // EF entities expose bidirectional navigation properties, so API responses can
+        // otherwise recurse infinitely when Swagger tries to serialize them.
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddRazorPages();
 
 // ─────────────────────────────────────────────────────────────────
