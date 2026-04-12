@@ -15,10 +15,10 @@ namespace Hospital_Management_System.Services.Scheduling
         // ============================================================================
         
         // The one you just wrote! For the Secretary or Doctor checking the daily roster.
-        Task<IEnumerable<Appointment>> GetDoctorScheduleAsync(string doctorPublicId, DateTime date, string role, int currentUserId);
+        Task<IEnumerable<AppointmentScheduleItemDto>> GetDoctorScheduleAsync(string doctorPublicId, DateTime date, string role, int currentUserId);
         
         // For clicking on a specific appointment to see the details.
-        Task<Appointment?> GetAppointmentByPublicIdAsync(string appointmentPublicId, string role, int currentUserId, string actorPublicId);
+        Task<AppointmentDetailDto?> GetAppointmentByPublicIdAsync(string appointmentPublicId, string role, int currentUserId, string actorPublicId);
 
 
         // ============================================================================

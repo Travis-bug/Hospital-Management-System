@@ -37,7 +37,10 @@ builder.Services.AddControllersWithViews()
         // otherwise recurse infinitely when Swagger tries to serialize them.
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
-builder.Services.AddRazorPages();
+
+
+
+
 
 // ─────────────────────────────────────────────────────────────────
 // C-02: RATE LIMITING — brute-force protection on auth endpoints
@@ -59,9 +62,12 @@ builder.Services.AddRateLimiter(options =>
 // ─────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
     options.AddPolicy("HmsPolicy", policy =>
-        policy.WithOrigins("https://localhost:7000") // TODO: replace with production domain
-              .WithMethods("GET", "POST", "PUT", "DELETE")
-              .WithHeaders("Authorization", "Content-Type")));
+        policy.WithOrigins(
+                  "http://localhost:7000",
+                  "https://localhost:7000")
+              .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+              .WithHeaders("Authorization", "Content-Type", "Accept")
+              .AllowCredentials()));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -94,7 +100,8 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
         options.Lockout.AllowedForNewUsers        = true;
     })
     .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<AppIdentityDbContext>();
+    .AddEntityFrameworkStores<AppIdentityDbContext>()
+    .AddDefaultTokenProviders();
 
 // ─────────────────────────────────────────────────────────────────
 // M-05: COOKIE POLICY — SameSite + HttpOnly for CSRF protection
@@ -105,6 +112,28 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.SameSite     = SameSiteMode.Strict;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // → Always in production
     options.Cookie.HttpOnly     = true;
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 builder.Services.AddTransient<IClaimsTransformation, DomainUserClaimsTransformation>();
@@ -201,13 +230,16 @@ app.UseExceptionHandler(errorApp =>
             return;
         }
 
-        if (statusCode is StatusCodes.Status403Forbidden or StatusCodes.Status404NotFound or StatusCodes.Status500InternalServerError)
-        {
-            context.Response.Redirect($"/Error/{statusCode}");
-            return;
-        }
-
-        context.Response.Redirect("/Home/Error");
+        // if (statusCode is StatusCodes.Status403Forbidden or StatusCodes.Status404NotFound or StatusCodes.Status500InternalServerError)
+        //   {
+           // context.Response.Redirect($"/Error/{statusCode}");
+           // return;
+       // }
+       // context.Response.Redirect("/Home/Error");
+       
+       context.Response.StatusCode = statusCode;
+       return;   // ide marked this as redundant 
+       
     }));
 
 if (!app.Environment.IsDevelopment())
@@ -252,7 +284,12 @@ app.Use(async (context, next) =>
 });
 
 // Static files come AFTER headers so they inherit the security headers above.
+app.UseDefaultFiles();
 app.UseStaticFiles();
+
+
+
+
 
 app.UseRouting();
 
@@ -262,11 +299,20 @@ app.UseCors("HmsPolicy"); // M-01 — must be after UseRouting, before UseAuthor
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+// app.MapControllerRoute(
+  //  name: "default",
+  //  pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapRazorPages();
+//app.MapRazorPages();
+
+   app.MapControllers(); // Maps your /api/ endpoints
+
+// The SPA Fallback: Any route the API doesn't recognize gets sent to React!
+   app.MapFallbackToFile("index.html");
+
+
+
+
 
 // ═════════════════════════════════════════════════════════════════
 // DATABASE SEED
@@ -393,6 +439,22 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogCritical(ex, "A critical error occurred during database seed.");
+    }
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>(); // H-04
+    try
+    {
+        logger.LogInformation("Running Identity Patcher...");
+        await StaffIdentityPatcher.SyncStaffToIdentityAsync(scope.ServiceProvider);
+        logger.LogInformation("Patching Complete!");
+    }
+    catch (Exception ex)
+    {
+        logger.LogCritical($"Patcher Failed: {ex.Message}");
     }
 }
 

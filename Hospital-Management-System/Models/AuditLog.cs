@@ -29,7 +29,8 @@ public partial class AuditLog
     
     
     // WHAT (The Action)
-    [Column(TypeName = "enum('Create', 'Update', 'Delete' ,'Read' , 'Complete' , 'Search' )")]
+    [StringLength(30)]
+    [Column(TypeName = "enum('Create', 'Update', 'Cancelled' ,'Read' , 'Complete' , 'Search' )")]
     public string ActionType { get; init; } = null!;  // e.g., AuditAction.Update
     
     

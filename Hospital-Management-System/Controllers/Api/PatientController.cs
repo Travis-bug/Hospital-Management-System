@@ -1,5 +1,6 @@
 using Hospital_Management_System.Models;
 using Hospital_Management_System.Models.ViewModels;
+using Hospital_Management_System.Services.ClinicalRecording;
 using Hospital_Management_System.Services.PatientManagement;
 using Hospital_Management_System.Services.StaffManagement;
 using Microsoft.AspNetCore.Authorization;
@@ -71,6 +72,23 @@ public class PatientController(
 
         var patients = await patientService.GetAllPatientsAsync(role, currentUserId);
         return Ok(patients);
+    }
+
+    /// <summary>
+    /// Retrieves all visits for a specific patient while preserving the caller's
+    /// role-based visit visibility rules.
+    /// </summary>
+    [HttpGet("{patientPublicId}/visits")]
+    [Authorize(Roles = "Manager,Admin,Secretary,Doctor,Nurse")]
+    public async Task<ActionResult<IEnumerable<PatientVisitListItemDto>>> GetPatientVisits(
+        string patientPublicId,
+        [FromServices] IVisitService visitService)
+    {
+        var role = User.GetRequiredRole();
+        var currentUserId = User.GetRequiredDomainUserId();
+
+        var visits = await visitService.GetVisitsByPatientPublicIdAsync(patientPublicId, role, currentUserId);
+        return Ok(visits);
     }
 
     /// <summary>

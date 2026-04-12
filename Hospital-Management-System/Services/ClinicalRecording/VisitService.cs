@@ -142,6 +142,62 @@ public class VisitService : IVisitService
         return await query.ToListAsync();
     }
 
+    public async Task<IEnumerable<PatientVisitListItemDto>> GetVisitsByPatientPublicIdAsync(string patientPublicId, string role, int currentUserId)
+    {
+        if (string.IsNullOrWhiteSpace(patientPublicId))
+        {
+            throw new ArgumentException("Patient public ID is required.");
+        }
+
+        var patient = await _context.Patients
+            .AsNoTracking()
+            .FirstOrDefaultAsync(existingPatient => existingPatient.PatientPublicId == patientPublicId)
+            ?? throw new KeyNotFoundException("Patient not found.");
+
+        var query = _context.Visits
+            .AsNoTracking()
+            .Include(visit => visit.Doctor)
+            .Include(visit => visit.Nurse)
+            .Where(visit => visit.PatientId == patient.PatientId);
+
+        switch (role)
+        {
+            case "Doctor":
+                query = query.Where(visit => visit.DoctorId == currentUserId);
+                break;
+
+            case "Nurse":
+            case "Admin":
+            case "Secretary":
+            case "Manager":
+                break;
+
+            default:
+                throw new UnauthorizedAccessException("Role not authorized to view patient visits.");
+        }
+
+        return await query
+            .OrderByDescending(visit => visit.CheckinTime)
+            .Select(visit => new PatientVisitListItemDto(
+                visit.VisitPublicId,
+                visit.Status,
+                visit.PatientClass,
+                visit.AdmissionStatus,
+                visit.ArrivalSource,
+                visit.CheckinTime,
+                visit.CheckoutTime,
+                visit.Symptoms,
+                visit.Diagnosis,
+                visit.Treatment,
+                visit.VisitNotes,
+                visit.Doctor != null ? visit.Doctor.PublicId : null,
+                visit.Doctor != null ? $"{visit.Doctor.FirstName} {visit.Doctor.LastName}" : null,
+                visit.Nurse != null ? visit.Nurse.PublicId : null,
+                visit.Nurse != null ? $"{visit.Nurse.FirstName} {visit.Nurse.LastName}" : null
+            ))
+            .ToListAsync();
+    }
+
     public async Task<Visit?> GetVisitByPublicIdAsync(string publicId, string role, int currentUserId, string actorPublicId)
     {
         var query = _context.Visits
@@ -319,19 +375,27 @@ public class VisitService : IVisitService
                 {
                     throw new UnauthorizedAccessException("Doctors can only complete their own visits.");
                 }
-
                 break;
 
             case "Nurse":
-                if (visit.AdmissionStatus == "Discharged")
-                {
-                    throw new InvalidOperationException("Visit is already discharged.");
-                }
-
-                break;
-
+                break; 
+            
             default:
                 throw new UnauthorizedAccessException("Role not authorized to complete visits.");
+        }
+
+        if (visit.Status == "Completed")
+        {
+            throw new InvalidOperationException("Visit is already marked as completed.");
+        }
+        
+        switch (visit.AdmissionStatus)
+        {
+            case "Admitted": 
+                throw new InvalidOperationException("Cannot complete visit. Patient is currently admitted to a bed. Please discharge them first.");
+            
+            case "Triage Pending": 
+                throw new InvalidOperationException("Cannot complete visit. Patient has not been triaged yet.");
         }
 
         visit.Status = "Completed";
@@ -349,4 +413,86 @@ public class VisitService : IVisitService
         await _context.SaveChangesAsync();
         return true;
     }
+    
+    
+    // Experimental (might delete) 
+    public async Task UpdateVisitClassificationsAsync(string visitPublicId, UpdateVisitEnumsDto dto, string role, int currentUserId, string actorPublicId)
+{
+    var visit = await _context.Visits
+        .FirstOrDefaultAsync(v => v.VisitPublicId == visitPublicId);
+
+    if (visit == null)
+        throw new KeyNotFoundException("Visit not found.");
+
+    // ==========================================
+    //  SECURITY CHECKPOINT
+    // ==========================================
+    switch (role)
+    {
+        case "Doctor":
+            if (visit.DoctorId != currentUserId)
+                throw new UnauthorizedAccessException("Doctors can only update classifications for their own visits.");
+            break;
+        case "Nurse":
+            // Nurses control patient flow and bed management
+            break;
+        default:
+            throw new UnauthorizedAccessException("Your role is not authorized to modify visit classifications.");
+    }
+
+    // ==========================================
+    // 🚦 ENUM HARD-VALIDATION (Protects MySQL)
+    // ==========================================
+    var validStatuses = new[] { "Active", "Completed" };
+    var validPatientClasses = new[] { "Inpatient", "Outpatient", "Emergency", "ER Referral" };
+    var validAdmissionStatuses = new[] { "Admitted", "Not Admitted", "Discharged", "Triage Pending" };
+
+    // ==========================================
+    //  SAFE UPDATE LOGIC
+    // ==========================================
+    if (!string.IsNullOrWhiteSpace(dto.Status))
+    {
+        if (!validStatuses.Contains(dto.Status))
+            throw new ArgumentException($"Invalid Status. Allowed: {string.Join(", ", validStatuses)}");
+            
+        visit.Status = dto.Status;
+        
+        // Auto-stamp the checkout time if they use the dropdown to complete the visit
+        if (dto.Status == "Completed")
+            visit.CheckoutTime = DateTime.UtcNow;
+    }
+
+    if (!string.IsNullOrWhiteSpace(dto.PatientClass))
+    {
+        if (!validPatientClasses.Contains(dto.PatientClass))
+            throw new ArgumentException($"Invalid Patient Class. Allowed: {string.Join(", ", validPatientClasses)}");
+            
+        visit.PatientClass = dto.PatientClass;
+    }
+
+    if (!string.IsNullOrWhiteSpace(dto.AdmissionStatus))
+    {
+        if (!validAdmissionStatuses.Contains(dto.AdmissionStatus))
+            throw new ArgumentException($"Invalid Admission Status. Allowed: {string.Join(", ", validAdmissionStatuses)}");
+            
+        visit.AdmissionStatus = dto.AdmissionStatus;
+    }
+
+    await _context.SaveChangesAsync();
+
+    // ==========================================
+    //  AUDIT LOG
+    // ==========================================
+    await _auditService.LogAsync(new AuditLog
+    {
+        PerformedBy = actorPublicId,
+        ActionType = "Update",
+        EntityName = "Visit",
+        EntityPublicId = visit.VisitPublicId,
+        Timestamp = DateTime.UtcNow,
+        Details = $"Visit classifications updated via panel. Status: {visit.Status}, Class: {visit.PatientClass}, Admission: {visit.AdmissionStatus}."
+    });
+}
+    
+    
 }

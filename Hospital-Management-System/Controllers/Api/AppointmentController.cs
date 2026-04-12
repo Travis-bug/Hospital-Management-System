@@ -16,7 +16,7 @@ public class AppointmentController(IAppointmentService appointmentService) : Con
     /// Retrieves a specific doctor's scheduled appointments for a given day.
     /// </summary>
     [HttpGet("doctor-schedule")]
-    public async Task<ActionResult<IEnumerable<Appointment>>> GetDoctorSchedule([FromQuery] string doctorPublicId, [FromQuery] DateTime date)
+    public async Task<ActionResult<IEnumerable<AppointmentScheduleItemDto>>> GetDoctorSchedule([FromQuery] string doctorPublicId, [FromQuery] DateTime date)
     {
         var role = User.GetRequiredRole();
         var currentUserId = User.GetRequiredDomainUserId();
@@ -29,7 +29,7 @@ public class AppointmentController(IAppointmentService appointmentService) : Con
     /// Retrieves the details of a specific appointment via its Public ID.
     /// </summary>
     [HttpGet("{publicId}")]
-    public async Task<ActionResult<Appointment>> GetAppointment(string publicId)
+    public async Task<ActionResult<AppointmentDetailDto>> GetAppointment(string publicId)
     {
         var role = User.GetRequiredRole();
         var currentUserId = User.GetRequiredDomainUserId();

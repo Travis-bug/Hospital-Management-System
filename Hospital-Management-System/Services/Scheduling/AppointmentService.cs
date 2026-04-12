@@ -22,9 +22,8 @@ public class AppointmentService : IAppointmentService
         return await _context.Appointments
             .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
     }
-
     
-    public async Task<IEnumerable<Appointment>> GetDoctorScheduleAsync(string doctorPublicId, DateTime date, string role, int currentUserId)
+    public async Task<IEnumerable<AppointmentScheduleItemDto>> GetDoctorScheduleAsync(string doctorPublicId, DateTime date, string role, int currentUserId)
     {
         
         var targetDoctor = await _context.Doctors
@@ -56,23 +55,35 @@ public class AppointmentService : IAppointmentService
         var activeStatuses = new[] { "Booked", "Arrived" }; 
 
         
-        
         return await _context.Appointments
             .AsNoTracking()
-            .Include(a => a.Patient)
             .Where(a => a.DoctorId == targetDoctor.DoctorId
                         && a.AppointmentDate >= startOfDay 
                         && a.AppointmentDate < endOfDay
                         && activeStatuses.Contains(a.Status)) // <-- THE NEW FILTER
+            
             .OrderBy(a => a.AppointmentDate)
+            .Select(a => new AppointmentScheduleItemDto(
+                a.PublicId,
+                a.AppointmentDate,
+                a.BookedAt,
+                a.Status,
+                a.Notes,
+                a.Patient == null
+                    ? null
+                    : new AppointmentPatientSummaryDto(
+                        a.Patient.PatientPublicId,
+                        a.Patient.FirstName,
+                        a.Patient.LastName,
+                        a.Patient.HealthCardNo)))
             .ToListAsync();
     }
 
 
     
-    public async Task<Appointment?> GetAppointmentByPublicIdAsync(string appointmentPublicId, string role, int currentUserId, string actorPublicId)
+    public async Task<AppointmentDetailDto?> GetAppointmentByPublicIdAsync(string appointmentPublicId, string role, int currentUserId, string actorPublicId)
     {
-        var query = _context.Appointments.AsNoTracking().Include(a => a.Patient).AsQueryable();
+        var query = _context.Appointments.AsNoTracking().AsQueryable();
         
         switch (role)
         {
@@ -85,12 +96,23 @@ public class AppointmentService : IAppointmentService
                 break;
             
             default:
-                throw new UnauthorizedAccessException("Role not authorized to view bill details.");
+                throw new UnauthorizedAccessException("Role not authorized to view appointment details.");
         }
 
         
         
-        var appointment = await query.FirstOrDefaultAsync(a => a.PublicId == appointmentPublicId);
+        var appointment = await query
+            .Where(a => a.PublicId == appointmentPublicId)
+            .Select(a => new AppointmentDetailDto(
+                a.PublicId,
+                a.Doctor != null ? a.Doctor.PublicId : null,
+                a.Nurse != null ? a.Nurse.PublicId : null,
+                a.AppointmentDate,
+                a.BookedAt,
+                a.Status,
+                a.Notes))
+            .FirstOrDefaultAsync();
+        
         if (appointment != null)
         {
             await _auditService.LogAsync(new AuditLog
@@ -180,10 +202,13 @@ public class AppointmentService : IAppointmentService
             case "Manager":
             case "Secretary": // deny access to anyone that's not the secretary
                 break;
+       
             default:
                 throw new UnauthorizedAccessException("Role not authorized to cancel appointments.");
         }
 
+        
+        
         switch (appointment.Status)
         {
             case "LWT":
@@ -194,20 +219,23 @@ public class AppointmentService : IAppointmentService
             
             default: 
                 throw new InvalidOperationException($"Cannot cancel an appointment that is already {appointment.Status}.");
-            
-
         }
+        
+        
+        await _context.SaveChangesAsync();
+        
         
         var log = new AuditLog
         {
             PerformedBy = actorPublicId,
-            ActionType = "Cancel",
+            ActionType = "Cancelled",
+            EntityName = "Appointment",
+            EntityPublicId = appointmentPublicId, 
             Timestamp = DateTime.UtcNow,
             Details = $"Appointment {appointmentPublicId} was cancelled."
         };
-
+        
         _context.AuditLogs.Add(log);
-    
         await _context.SaveChangesAsync();
         
     }

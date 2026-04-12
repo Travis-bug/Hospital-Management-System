@@ -27,6 +27,10 @@ public interface IVisitService
     // - both → returns visits scoped to BOTH doctor and patient
     Task<IEnumerable<Visit>> GetVisitsAsync(string role, int currentUserId);
 
+    // Retrieves visits for a single patient while still enforcing the caller's
+    // role-based scope rules.
+    Task<IEnumerable<PatientVisitListItemDto>> GetVisitsByPatientPublicIdAsync(string patientPublicId, string role, int currentUserId);
+
 
 
 

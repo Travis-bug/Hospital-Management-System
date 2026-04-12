@@ -92,6 +92,44 @@ public record BookAppointmentDto(
     string?  Notes
 );
 
+/// <summary>
+/// Public-safe shape for appointment detail responses.
+/// Excludes internal database keys and EF navigation graphs.
+/// </summary>
+public record AppointmentDetailDto(
+    string   PublicId,
+    string?  DoctorPublicId,
+    string?  NursePublicId,
+    DateTime AppointmentDate,
+    DateTime? BookedAt,
+    string?  Status,
+    string?  Notes
+);
+
+/// <summary>
+/// Minimal patient data needed in appointment schedule responses.
+/// Keeps the API useful for staff without exposing the full patient entity graph.
+/// </summary>
+public record AppointmentPatientSummaryDto(
+    string PublicId,
+    string FirstName,
+    string LastName,
+    string HealthCardNo
+);
+
+/// <summary>
+/// Public-safe shape for appointment schedule items.
+/// Excludes internal database IDs and EF navigation collections.
+/// </summary>
+public record AppointmentScheduleItemDto(
+    string PublicId,
+    DateTime AppointmentDate,
+    DateTime? BookedAt,
+    string? Status,
+    string? Notes,
+    AppointmentPatientSummaryDto? Patient
+);
+
 // ─────────────────────────────────────────────────────────────────
 // SCHEDULING DTOs
 // ─────────────────────────────────────────────────────────────────
@@ -108,9 +146,92 @@ public record ScheduleStaffDto(
 );
 
 
+
+public class UpdateVisitEnumsDto
+{
+    public string? Status { get; set; }
+    public string? PatientClass { get; set; }
+    public string? AdmissionStatus { get; set; }
+}
+
+
+
 public record UpdateBillingDto(
     decimal Amount,
     string ServiceName,
     string PatientName
 
+);
+
+// ─────────────────────────────────────────────────────────────────
+// AUTH DTOs
+// ─────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// First-step login payload. The backend authenticates with ASP.NET Identity
+/// and may either issue the app cookie or request a second factor.
+/// </summary>
+public record LoginRequestDto(
+    string Email,
+    string Password
+);
+
+/// <summary>
+/// Second-step 2FA verification payload. The user is already in a pending
+/// two-factor flow after a successful password check.
+/// </summary>
+public record TwoFactorLoginDto(
+    string Email,
+    string Code,
+    bool RememberMachine
+);
+
+/// <summary>
+/// Public-safe auth session payload returned to the React frontend.
+/// The cookie itself remains HTTP-only and is never exposed to JavaScript.
+/// </summary>
+public record AuthSessionDto(
+    bool RequiresTwoFactor,
+    string? Role,
+    string? Email
+);
+
+// ─────────────────────────────────────────────────────────────────
+// FRONTEND DATA DTOs
+// ─────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Lightweight visit payload for the patient chart contextual visits tab.
+/// Keeps the frontend off the raw EF Visit graph.
+/// </summary>
+public record PatientVisitListItemDto(
+    string PublicId,
+    string? Status,
+    string? PatientClass,
+    string? AdmissionStatus,
+    string? ArrivalSource,
+    DateTime? CheckInTime,
+    DateTime? CheckOutTime,
+    string? Symptoms,
+    string? Diagnosis,
+    string? Treatment,
+    string? VisitNotes,
+    string? DoctorPublicId,
+    string? DoctorName,
+    string? NursePublicId,
+    string? NurseName
+);
+
+/// <summary>
+/// Unified staff directory row used by the admin staff management workspace.
+/// It merges the clinic-side staff profile with the linked Identity account email when present.
+/// </summary>
+public record StaffDirectoryItemDto(
+    string PublicId,
+    string FirstName,
+    string LastName,
+    string Role,
+    string? Email,
+    string Department,
+    string Status
 );
