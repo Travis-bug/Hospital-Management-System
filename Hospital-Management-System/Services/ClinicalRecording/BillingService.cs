@@ -45,6 +45,8 @@ public class BillingService : IBillingService
         var log = new AuditLog
         {
             PerformedBy = actorPublicId,
+            EntityName = "Fee",
+            EntityPublicId = fee.PublicId,
             ActionType = "Create",
             Timestamp = DateTime.UtcNow,
             Details = $"Billing created for patient visit {VisitExist.VisitPublicId}." // use visit exist because we know its not null from here 
@@ -88,9 +90,11 @@ public class BillingService : IBillingService
         await _auditService.LogAsync(new AuditLog
         {
             PerformedBy = actorPublicId, 
+            EntityName = "Fee",
+            EntityPublicId = existingFee.PublicId,
             ActionType = "Update",
             Timestamp = DateTime.UtcNow,
-            Details = $"Fee with ID {existingFee.FeeId} was updated."
+            Details = $"Billing record {existingFee.PublicId} was updated."
 
         });
 
@@ -108,7 +112,7 @@ public class BillingService : IBillingService
         
         switch (role)
         {
-            case "Secretary ": // NOTE: only secretaries can delete fees. (deny access to anyone that's not the secretary) 
+            case "Secretary": // NOTE: only secretaries can delete fees. (deny access to anyone that's not the secretary) 
                 break;
             default:
                 throw new UnauthorizedAccessException("Role not authorized to delete fees.");
@@ -118,9 +122,11 @@ public class BillingService : IBillingService
         await _auditService.LogAsync(new AuditLog
         {
             PerformedBy = actorPublicId,
+            EntityName = "Fee",
+            EntityPublicId = existingFee.PublicId,
             ActionType = "Delete",
             Timestamp = DateTime.UtcNow,
-            Details = $"Fee with ID {feeId} was deleted."
+            Details = $"Billing record {existingFee.PublicId} was deleted."
         }); 
         await _context.SaveChangesAsync();
     }
@@ -131,7 +137,7 @@ public class BillingService : IBillingService
     public async Task MarkAsPaidAsync(int FeeId)
     {
         await _context.Fees
-            .Where(f => f.FeeId == FeeId && f.Amount > 0)
+            .Where(f => f.FeeId == FeeId && !f.IsPaid)
             .ExecuteUpdateAsync(setter => setter
                 .SetProperty(f => f.IsPaid, true) // mark as paid
                 .SetProperty(f => f.LastModified, DateTime.UtcNow)); // update last-modified date
@@ -185,6 +191,8 @@ public class BillingService : IBillingService
             await _auditService.LogAsync(new AuditLog
             {
                 PerformedBy = actorPublicId,
+                EntityName = "Fee",
+                EntityPublicId = fee.PublicId,
                 ActionType = "Read",
                 Timestamp = DateTime.UtcNow,
                 Details = $"Bill details viewed by {actorPublicId}."
@@ -238,9 +246,10 @@ public class BillingService : IBillingService
         await _auditService.LogAsync(new AuditLog
         {
             PerformedBy = actorPublicId,
+            EntityName = "Fee",
             ActionType = "Search",
             Timestamp = DateTime.UtcNow,
-            Details = $"Searched bills for: {keyword}"
+            Details = $"Billing search executed. Matches: {results.Count}."
         });
 
         return results;
@@ -253,7 +262,7 @@ public class BillingService : IBillingService
         var query = _context.Fees
             .AsNoTracking()
             .Include(f => f.Patient)
-            .Where(f => f.Amount > 0 && f.PatientId == patientId);
+            .Where(f => !f.IsPaid && f.PatientId == patientId);
 
         switch (role)
         {
@@ -306,7 +315,7 @@ public class BillingService : IBillingService
     {
         var query = _context.Fees
             .AsNoTracking()
-            .Where(f => f.Amount > 0 && f.PatientId == patientId);
+            .Where(f => !f.IsPaid && f.PatientId == patientId);
 
         switch (role)
         {
@@ -324,4 +333,3 @@ public class BillingService : IBillingService
         return await query.SumAsync(f => f.Amount);
     }
 }
-

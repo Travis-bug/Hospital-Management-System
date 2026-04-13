@@ -34,8 +34,7 @@ public partial class AuditLog
     public string ActionType { get; init; } = null!;  // e.g., AuditAction.Update
     
     
-    [Column("Details")]
-    [StringLength(50)]
+    [Column("Details", TypeName = "text")]
     public string? Details { get; init; }
 
     // WHERE (The Table and the Specific Record)

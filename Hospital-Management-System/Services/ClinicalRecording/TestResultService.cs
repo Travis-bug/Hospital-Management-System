@@ -145,9 +145,11 @@ public class TestResultService : ITestResultsService
             await _auditService.LogAsync(new AuditLog
             {
                 PerformedBy = actorPublicId, // this will be assigned to the user's Public ID in the controller
+                EntityName = "TestResult",
+                EntityPublicId = publicTestId,
                 ActionType = "Read",
                 Timestamp = DateTime.UtcNow,
-                Details = $"Test result details viewed by {currentUserId}."
+                Details = $"Test result {publicTestId} was viewed."
             });
 
         }
@@ -203,9 +205,10 @@ public class TestResultService : ITestResultsService
         await _auditService.LogAsync(new AuditLog
         {
             PerformedBy = actorPublicId,
+            EntityName = "TestResult",
             ActionType = "Search",
             Timestamp = DateTime.UtcNow,
-            Details = $"Searched Test Results for: {keyword}"
+            Details = $"Test result search executed. Matches: {results.Count}."
         });
 
         return results;

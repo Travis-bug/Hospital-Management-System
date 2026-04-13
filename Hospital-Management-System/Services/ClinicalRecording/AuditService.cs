@@ -8,7 +8,6 @@ public class AuditService : IAuditService
     private readonly ClinicContext _context;
     private const int PerformedByMaxLength = 30;
     private const int EntityPublicIdMaxLength = 50;
-    private const int DetailsMaxLength = 50;
     private const int EntityNameMaxLength = 30;
 
     public AuditService(ClinicContext context)
@@ -35,7 +34,7 @@ public class AuditService : IAuditService
             PerformedBy = Truncate(auditLog.PerformedBy, PerformedByMaxLength),
             EntityPublicId = Truncate(auditLog.EntityPublicId, EntityPublicIdMaxLength),
             ActionType = auditLog.ActionType,
-            Details = Truncate(auditLog.Details, DetailsMaxLength),
+            Details = auditLog.Details,
             EntityName = Truncate(auditLog.EntityName, EntityNameMaxLength),
             Timestamp = auditLog.Timestamp
         };

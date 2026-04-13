@@ -34,7 +34,6 @@ public partial class DiagnosticTest
     public string TestName { get; set; } = null!;
 
     [Column(TypeName = "text")]
-    [StringLength(30)]
     public string ClinicalNotes { get; set; } = null!;
 
     [Column(TypeName = "timestamp")]

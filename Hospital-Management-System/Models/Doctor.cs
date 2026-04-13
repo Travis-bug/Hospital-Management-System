@@ -29,7 +29,7 @@ public partial class Doctor
     [StringLength(50)]
     public string LastName { get; set; } = null!;
 
-    [StringLength(50)]
+    [StringLength(100)]
     public string? Specialization { get; set; }
 
     [StringLength(100)]

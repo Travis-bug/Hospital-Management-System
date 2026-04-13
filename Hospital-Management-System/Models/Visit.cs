@@ -59,17 +59,14 @@ public partial class Visit
     
    
     [Column(TypeName = "text")]
-    [StringLength(30)]
     public string? Symptoms { get; set; }
 
     
     [Column(TypeName = "text")]
-    [StringLength(30)]
     public string? Diagnosis { get; set; }
 
     
     [Column(TypeName = "text")]
-    [StringLength(30)]
     public string? Treatment { get; set; }
 
     
@@ -86,7 +83,6 @@ public partial class Visit
     
     
     [Column(TypeName = "text")]
-    [StringLength(100)]
     public string VisitNotes { get; set; } = null!;
     
     

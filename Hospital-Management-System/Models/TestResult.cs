@@ -38,8 +38,6 @@ public partial class TestResult
     public int NurseId { get; set; }
 
     [Column(TypeName = "text")]
-    [StringLength(50)]
-        
     public string Findings { get; set; } = null!;
 
     [Column(TypeName = "timestamp")]

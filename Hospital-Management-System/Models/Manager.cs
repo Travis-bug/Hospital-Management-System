@@ -23,10 +23,10 @@ public partial class Manager
     public string PublicId { get; set; } = Utilities.SecureIdGenerator.GenerateID(9, "MA");
     //=====================================
 
-    [StringLength(20)]
+    [StringLength(50)]
     public string FirstName { get; set; } = null!;
 
-    [StringLength(20)]
+    [StringLength(50)]
     public string LastName { get; set; } = null!;
 
     [Precision(10, 2)]

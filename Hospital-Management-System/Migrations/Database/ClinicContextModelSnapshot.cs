@@ -87,8 +87,8 @@ namespace Hospital_Management_System.Database
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<decimal?>("HourlyRate")
                         .ValueGeneratedOnAdd()
@@ -102,8 +102,8 @@ namespace Hospital_Management_System.Database
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(10)
@@ -149,7 +149,6 @@ namespace Hospital_Management_System.Database
                         .HasColumnName("DoctorID");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(30)
                         .HasColumnType("text");
 
                     b.Property<int?>("NurseId")
@@ -197,8 +196,7 @@ namespace Hospital_Management_System.Database
                         .HasColumnType("enum('Create', 'Update', 'Cancelled' ,'Read' , 'Complete' , 'Search' )");
 
                     b.Property<string>("Details")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("text")
                         .HasColumnName("Details");
 
                     b.Property<string>("EntityName")
@@ -239,7 +237,6 @@ namespace Hospital_Management_System.Database
 
                     b.Property<string>("ClinicalNotes")
                         .IsRequired()
-                        .HasMaxLength(30)
                         .HasColumnType("text");
 
                     b.Property<int>("DoctorId")
@@ -322,8 +319,8 @@ namespace Hospital_Management_System.Database
                         .HasColumnName("PublicID");
 
                     b.Property<string>("Specialization")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("StreetAddress")
                         .HasMaxLength(100)
@@ -460,8 +457,8 @@ namespace Hospital_Management_System.Database
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<decimal>("HourlyRate")
                         .HasPrecision(10, 2)
@@ -473,8 +470,8 @@ namespace Hospital_Management_System.Database
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(10)
@@ -982,7 +979,6 @@ namespace Hospital_Management_System.Database
 
                     b.Property<string>("Findings")
                         .IsRequired()
-                        .HasMaxLength(50)
                         .HasColumnType("text");
 
                     b.Property<int>("NurseId")
@@ -1053,7 +1049,6 @@ namespace Hospital_Management_System.Database
                         .HasColumnName("Checkout_Time");
 
                     b.Property<string>("Diagnosis")
-                        .HasMaxLength(30)
                         .HasColumnType("text");
 
                     b.Property<int?>("DoctorId")
@@ -1077,16 +1072,13 @@ namespace Hospital_Management_System.Database
                         .HasColumnType("enum('Active', 'Completed')");
 
                     b.Property<string>("Symptoms")
-                        .HasMaxLength(30)
                         .HasColumnType("text");
 
                     b.Property<string>("Treatment")
-                        .HasMaxLength(30)
                         .HasColumnType("text");
 
                     b.Property<string>("VisitNotes")
                         .IsRequired()
-                        .HasMaxLength(100)
                         .HasColumnType("text");
 
                     b.Property<string>("VisitPublicId")

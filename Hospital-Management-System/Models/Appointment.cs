@@ -43,7 +43,6 @@ public partial class Appointment
     public string? Status { get; set; }
 
     [Column(TypeName = "text")]
-    [StringLength(30)]
     public string? Notes { get; set; }
 
     
