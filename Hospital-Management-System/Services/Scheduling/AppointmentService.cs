@@ -118,6 +118,8 @@ public class AppointmentService : IAppointmentService
             await _auditService.LogAsync(new AuditLog
             {
                 PerformedBy = actorPublicId,
+                EntityName = "Appointment",
+                EntityPublicId = appointment.PublicId,
                 ActionType = "Read",
                 Timestamp = DateTime.UtcNow,
                 Details = $"Appointment details viewed by {actorPublicId}."
@@ -128,7 +130,7 @@ public class AppointmentService : IAppointmentService
     }
 
 
-    public async Task<Appointment> BookAppointmentAsync(BookAppointmentDto dto, string role, string actorPublicId)
+    public async Task<AppointmentDetailDto> BookAppointmentAsync(BookAppointmentDto dto, string role, string actorPublicId)
     {
         if (role is not "Secretary" and not "Admin")
         {
@@ -173,6 +175,8 @@ public class AppointmentService : IAppointmentService
         var log = new AuditLog
         {
             PerformedBy = actorPublicId,
+            EntityName = "Appointment",
+            EntityPublicId = appointment.PublicId,
             ActionType = "Create",
             Timestamp = DateTime.UtcNow,
             Details = $"Appointment created for patient {patient.PatientPublicId}."
@@ -181,7 +185,15 @@ public class AppointmentService : IAppointmentService
         _context.Appointments.Add(appointment);
         _context.AuditLogs.Add(log);
         await _context.SaveChangesAsync();
-        return appointment;
+        
+        return new AppointmentDetailDto(
+            appointment.PublicId,
+            doctor.PublicId,
+            null,
+            appointment.AppointmentDate,
+            appointment.BookedAt,
+            appointment.Status,
+            appointment.Notes);
     }
 
     public async Task CancelAppointmentAsync(string appointmentPublicId, string role, string actorPublicId, int currentUserId)

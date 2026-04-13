@@ -70,6 +70,18 @@ public class VisitController(IVisitService visitService) : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{publicId}/classifications")]
+    [Authorize(Roles = "Doctor,Nurse")]
+    public async Task<IActionResult> UpdateVisitClassifications(string publicId, [FromBody] UpdateVisitEnumsDto dto)
+    {
+        var role = User.GetRequiredRole();
+        var currentUserId = User.GetRequiredDomainUserId();
+        var actorPublicId = User.GetRequiredActorPublicId();
+
+        await visitService.UpdateVisitClassificationsAsync(publicId, dto, role, currentUserId, actorPublicId);
+        return NoContent();
+    }
+
     /// <summary>
     /// Discharges a patient by marking their visit as completed.
     /// </summary>

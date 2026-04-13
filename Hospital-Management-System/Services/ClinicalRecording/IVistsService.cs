@@ -76,4 +76,7 @@ public interface IVisitService
     // Authorization: Doctor can complete own visits only, Nurse can complete any non-discharged visit.
     Task<bool> CompleteVisitAsync(string visitPublicId, string role, int currentUserId, string actorPublicId);
 
+    // Updates the enum-backed visit classifications from the chart UI.
+    Task UpdateVisitClassificationsAsync(string visitPublicId, UpdateVisitEnumsDto dto, string role, int currentUserId, string actorPublicId);
+
 }

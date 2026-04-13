@@ -26,7 +26,7 @@ namespace Hospital_Management_System.Services.Scheduling
         // ============================================================================
         
         // The hardest one: Must check for double-booking before saving!
-        Task<Appointment> BookAppointmentAsync(BookAppointmentDto dto, string role, string actorPublicId);
+        Task<AppointmentDetailDto> BookAppointmentAsync(BookAppointmentDto dto, string role, string actorPublicId);
         
         // We use 'Cancel' instead of 'Delete' to keep the hospital records intact.
        Task CancelAppointmentAsync(string appointmentPublicId, string role, string actorPublicId, int currentUserId) ;

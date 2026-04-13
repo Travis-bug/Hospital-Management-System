@@ -22,6 +22,6 @@ namespace Hospital_Management_System.Services.PatientManagement
         Task DeleteAsync(string patientpublicId, string role, string actorPublicId, int currentUserId); 
         
         
-        Task<IEnumerable<Patient>> SearchAsync(string keyword);
+        Task<IEnumerable<Patient>> SearchAsync(string keyword, string role, int currentUserId);
     }
 }

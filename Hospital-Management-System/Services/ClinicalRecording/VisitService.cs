@@ -276,9 +276,10 @@ public class VisitService : IVisitService
         await _auditService.LogAsync(new AuditLog
         {
             PerformedBy = actorPublicId,
+            EntityName = "Visit",
             ActionType = "Search",
             Timestamp = DateTime.UtcNow,
-            Details = $"Search query: {keyword}"
+            Details = $"Visit search executed. Matches: {results.Count}."
         });
 
         return results;
@@ -416,7 +417,7 @@ public class VisitService : IVisitService
     
     
     // Experimental (might delete) 
-    public async Task UpdateVisitClassificationsAsync(string visitPublicId, UpdateVisitEnumsDto dto, string role, int currentUserId, string actorPublicId)
+    public async Task UpdateVisitClassificationsAsync(string visitPublicId, UpdateVisitEnumsDto dto, string role, int currentUserId, string actorPublicId) 
 {
     var visit = await _context.Visits
         .FirstOrDefaultAsync(v => v.VisitPublicId == visitPublicId);

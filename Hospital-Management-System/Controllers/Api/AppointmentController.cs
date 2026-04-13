@@ -1,4 +1,3 @@
-using Hospital_Management_System.Models;
 using Hospital_Management_System.Models.ViewModels;
 using Hospital_Management_System.Services.Scheduling;
 using Hospital_Management_System.Services.StaffManagement;
@@ -45,7 +44,7 @@ public class AppointmentController(IAppointmentService appointmentService) : Con
     /// Books a new appointment, checking for double-booking conflicts.
     /// </summary>
     [HttpPost("book")]
-    public async Task<ActionResult<Appointment>> BookAppointment([FromBody] BookAppointmentDto dto)
+    public async Task<ActionResult<AppointmentDetailDto>> BookAppointment([FromBody] BookAppointmentDto dto)
     {
         var role = User.GetRequiredRole();
         var actorPublicId = User.GetRequiredActorPublicId();

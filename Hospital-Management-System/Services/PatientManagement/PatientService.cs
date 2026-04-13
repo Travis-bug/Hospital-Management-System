@@ -244,14 +244,30 @@ namespace Hospital_Management_System.Services.PatientManagement
 
         
         // search patient info by keyword, name, or email
-        public async Task<IEnumerable<Patient>> SearchAsync(string keyword)
+        public async Task<IEnumerable<Patient>> SearchAsync(string keyword, string role, int currentUserId)
         {
             if (string.IsNullOrWhiteSpace(keyword))
                 return []; // this should return an empty list if the keyword is null or whitespace {TEST} 
 
             keyword = keyword.ToLower();
 
-            return await _context.Patients
+            var query = _context.Patients.AsQueryable();
+
+            switch (role)
+            {
+                case "Doctor":
+                    query = query.Where(patient => patient.DoctorId == currentUserId);
+                    break;
+                case "Admin":
+                case "Secretary":
+                case "Manager":
+                case "Nurse":
+                    break;
+                default:
+                    throw new UnauthorizedAccessException("Role not authorized to search patients.");
+            }
+
+            return await query
                 .Where(p =>
                     (p.FirstName != null && p.FirstName.ToLower().Contains(keyword)) ||
                     (p.LastName != null && p.LastName.ToLower().Contains(keyword)) ||

@@ -1,8 +1,10 @@
+using Hospital_Management_System.Data;
 using Hospital_Management_System.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 
 namespace Hospital_Management_System.Controllers.Api;
 
@@ -11,6 +13,7 @@ namespace Hospital_Management_System.Controllers.Api;
 public class AuthController(
     SignInManager<IdentityUser> signInManager,
     UserManager<IdentityUser> userManager,
+    ClinicContext clinicContext,
     ILogger<AuthController> logger,
     IWebHostEnvironment environment) : ControllerBase
 {
@@ -26,7 +29,7 @@ public class AuthController(
     // The SPA never sees the cookie itself. It only receives enough session data
     // to render the correct workspace after ASP.NET Identity sets the HTTP-only cookie.
     [HttpGet("me")]
-    [Authorize]
+    [Authorize]   
     public async Task<ActionResult<AuthSessionDto>> GetCurrentSession()
     {
         var user = await userManager.GetUserAsync(User);
@@ -38,6 +41,8 @@ public class AuthController(
         return Ok(await BuildSessionAsync(user));
     }
 
+    
+    
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("AuthPolicy")]
@@ -48,12 +53,15 @@ public class AuthController(
             return BadRequest(new { message = "Email and password are required." });
         }
 
+        
         var user = await userManager.FindByEmailAsync(dto.Email.Trim());
         if (user is null)
         {
             return Unauthorized(new { message = "Invalid login attempt." });
-        }
+        } 
+        
 
+        
         if (!user.EmailConfirmed)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
@@ -84,7 +92,9 @@ public class AuthController(
             return Ok(new AuthSessionDto(
                 RequiresTwoFactor: true,
                 Role: null,
-                Email: user.Email));
+                Email: user.Email,
+                PublicId: null,
+                DisplayName: null));
         }
 
         if (result.Succeeded)
@@ -160,15 +170,46 @@ public class AuthController(
         return NoContent();
     }
 
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+        {
+            return BadRequest(new { message = "Current and new passwords are required." });
+        }
+
+        var user = await userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return Unauthorized(new { message = "No active session." });
+        }
+
+        var result = await userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new
+            {
+                message = string.Join(" ", result.Errors.Select(error => error.Description))
+            });
+        }
+
+        await signInManager.RefreshSignInAsync(user);
+        return NoContent();
+    }
+
     private async Task<AuthSessionDto> BuildSessionAsync(IdentityUser user)
     {
         var roles = await userManager.GetRolesAsync(user);
         var highestRole = ResolveHighestRole(roles);
+        var actor = await ResolveActorAsync(highestRole, user.Id);
 
         return new AuthSessionDto(
             RequiresTwoFactor: false,
             Role: highestRole,
-            Email: user.Email);
+            Email: user.Email,
+            PublicId: actor?.PublicId,
+            DisplayName: actor?.DisplayName ?? user.Email);
     }
 
     private static string? ResolveHighestRole(IEnumerable<string> roles)
@@ -185,4 +226,54 @@ public class AuthController(
 
         return roles.FirstOrDefault();
     }
+
+    private async Task<ActorSessionInfo?> ResolveActorAsync(string? role, string identityUserId)
+    {
+        return role switch
+        {
+            "Doctor" => await clinicContext.Doctors
+                .AsNoTracking()
+                .Where(doctor => doctor.IdentityUserId == identityUserId)
+                .Select(doctor => new ActorSessionInfo(
+                    doctor.PublicId,
+                    $"{doctor.FirstName} {doctor.LastName}"))
+                .SingleOrDefaultAsync(),
+
+            "Nurse" => await clinicContext.Nurses
+                .AsNoTracking()
+                .Where(nurse => nurse.IdentityUserId == identityUserId)
+                .Select(nurse => new ActorSessionInfo(
+                    nurse.PublicId,
+                    $"{nurse.FirstName} {nurse.LastName}"))
+                .SingleOrDefaultAsync(),
+
+            "Secretary" => await clinicContext.Secretaries
+                .AsNoTracking()
+                .Where(secretary => secretary.IdentityUserId == identityUserId)
+                .Select(secretary => new ActorSessionInfo(
+                    secretary.PublicId,
+                    $"{secretary.FirstName} {secretary.LastName}"))
+                .SingleOrDefaultAsync(),
+
+            "Admin" => await clinicContext.AdministrativeAssistants
+                .AsNoTracking()
+                .Where(admin => admin.IdentityUserId == identityUserId)
+                .Select(admin => new ActorSessionInfo(
+                    admin.PublicId,
+                    $"{admin.FirstName} {admin.LastName}"))
+                .SingleOrDefaultAsync(),
+
+            "Manager" => await clinicContext.Managers
+                .AsNoTracking()
+                .Where(manager => manager.IdentityUserId == identityUserId)
+                .Select(manager => new ActorSessionInfo(
+                    manager.PublicId,
+                    $"{manager.FirstName} {manager.LastName}"))
+                .SingleOrDefaultAsync(),
+
+            _ => null
+        };
+    }
+
+    private sealed record ActorSessionInfo(string PublicId, string DisplayName);
 }

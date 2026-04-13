@@ -187,13 +187,23 @@ public record TwoFactorLoginDto(
 );
 
 /// <summary>
+/// Self-service password change payload for an already authenticated user.
+/// </summary>
+public record ChangePasswordRequestDto(
+    string CurrentPassword,
+    string NewPassword
+);
+
+/// <summary>
 /// Public-safe auth session payload returned to the React frontend.
 /// The cookie itself remains HTTP-only and is never exposed to JavaScript.
 /// </summary>
 public record AuthSessionDto(
     bool RequiresTwoFactor,
     string? Role,
-    string? Email
+    string? Email,
+    string? PublicId,
+    string? DisplayName
 );
 
 // ─────────────────────────────────────────────────────────────────
@@ -234,4 +244,57 @@ public record StaffDirectoryItemDto(
     string? Email,
     string Department,
     string Status
+);
+
+/// <summary>
+/// Unified admin/manager provisioning payload for creating a clinic-side staff row
+/// and the linked ASP.NET Identity account in one request.
+/// </summary>
+public record CreateStaffAccountDto(
+    string FirstName,
+    string LastName,
+    string Email,
+    string TemporaryPassword,
+    string Role
+);
+
+/// <summary>
+/// Confirmation payload returned after a staff account is provisioned.
+/// </summary>
+public record ProvisionedStaffAccountDto(
+    string PublicId,
+    string Role,
+    string Email,
+    string DisplayName
+);
+
+public record PatientVitalListItemDto(
+    string VisitPublicId,
+    DateTime? RecordedAt,
+    decimal? Weight,
+    decimal? Height,
+    string? BloodPressure,
+    decimal? Temperature,
+    string? NursePublicId,
+    string? NurseName
+);
+
+public record PrescriptionListItemDto(
+    string PublicId,
+    string MedicineName,
+    string? Dosage,
+    string? VisitPublicId,
+    string? DoctorPublicId,
+    string? DoctorName,
+    string? RelatedTestResultPublicId
+);
+
+public record TestResultListItemDto(
+    string PublicTestId,
+    DateTime? ResultDate,
+    string Findings,
+    string TestName,
+    string VisitPublicId,
+    string? NursePublicId,
+    string? NurseName
 );
