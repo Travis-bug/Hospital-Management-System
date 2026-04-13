@@ -37,6 +37,7 @@ builder.Services.AddControllersWithViews()
         // otherwise recurse infinitely when Swagger tries to serialize them.
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
+builder.Services.AddRazorPages();
 
 
 
@@ -55,16 +56,31 @@ builder.Services.AddRateLimiter(options =>
         opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/problem+json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            title = "Too many requests.",
+            status = StatusCodes.Status429TooManyRequests,
+            detail = "Too many authentication attempts. Wait 5 minutes before retrying."
+        }, cancellationToken);
+    };
 });
 
 // ─────────────────────────────────────────────────────────────────
 // M-01: CORS — explicit allowlist, never wildcard
 // ─────────────────────────────────────────────────────────────────
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+if (allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException("Cors:AllowedOrigins must be configured with explicit frontend origins.");
+}
+
 builder.Services.AddCors(options =>
     options.AddPolicy("HmsPolicy", policy =>
-        policy.WithOrigins(
-                  "http://localhost:7000",
-                  "https://localhost:7000")
+        policy.WithOrigins(allowedOrigins)
               .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
               .WithHeaders("Authorization", "Content-Type", "Accept")
               .AllowCredentials()));
@@ -95,7 +111,7 @@ builder.Services.AddDbContext<ClinicContext>(options =>
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount     = true;
-        options.Lockout.MaxFailedAccessAttempts   = 5;
+        options.Lockout.MaxFailedAccessAttempts   = 30;
         options.Lockout.DefaultLockoutTimeSpan    = TimeSpan.FromMinutes(15);
         options.Lockout.AllowedForNewUsers        = true;
     })
@@ -247,7 +263,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // ─────────────────────────────────────────────────────────────────
 // C-03: SECURITY HEADERS
@@ -293,155 +312,31 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseRateLimiter(); // C-02
 app.UseCors("HmsPolicy"); // M-01 — must be after UseRouting, before UseAuthorization
+app.UseRateLimiter(); // C-02
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// app.MapControllerRoute(
-  //  name: "default",
-  //  pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
-//app.MapRazorPages();
-
-   app.MapControllers(); // Maps your /api/ endpoints
+app.MapRazorPages();
+app.MapControllers(); // Maps your /api/ endpoints
 
 // The SPA Fallback: Any route the API doesn't recognize gets sent to React!
-   app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html");
 
 
 
 
 
 // ═════════════════════════════════════════════════════════════════
-// DATABASE SEED
+// DEMO IDENTITY SYNC
+// SQL owns the clinic-side demo data. Startup only ensures those staff
+// records have usable ASP.NET Identity accounts for local testing.
 // ═════════════════════════════════════════════════════════════════
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var logger   = services.GetRequiredService<ILogger<Program>>(); // H-04
-
-    try
-    {
-        var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
-        // Seed roles
-        foreach (var role in new[] { "Doctor", "Nurse", "Admin", "Secretary" })
-        {
-            if (!await roleManager.RoleExistsAsync(role))
-                await roleManager.CreateAsync(new IdentityRole(role));
-        }
-
-        // Seed test doctor
-        var doctorEmail = "doctor@hospital.com";
-        var doctorUser  = await userManager.FindByEmailAsync(doctorEmail);
-
-        if (doctorUser == null)
-        {
-            doctorUser = new IdentityUser
-            {
-                UserName       = doctorEmail,
-                Email          = doctorEmail,
-                EmailConfirmed = true
-            };
-
-            // C-01: Password from configuration — never hardcode credentials
-            var seedPassword = builder.Configuration["Seed:DoctorPassword"]
-                ?? throw new InvalidOperationException(
-                    "Seed:DoctorPassword not configured. Add it to appsettings.Development.json " +
-                    "or as a Docker/environment secret.");
-
-            var createResult = await userManager.CreateAsync(doctorUser, seedPassword);
-
-            if (createResult.Succeeded)
-            {
-                await userManager.AddToRoleAsync(doctorUser, "Doctor");
-                logger.LogInformation("Seeded test doctor: {Email}", doctorEmail);
-            }
-            else
-            {
-                logger.LogError("Seed failed for {Email}: {Errors}", doctorEmail,
-                    string.Join(", ", createResult.Errors.Select(e => e.Description)));
-            }
-        }
-
-        // Seed test patients
-        var clinicContext = services.GetRequiredService<ClinicContext>();
-
-        var linkedDoctor = await clinicContext.Doctors
-            .FirstOrDefaultAsync(doctor => doctor.IdentityUserId == doctorUser.Id);
-
-        if (linkedDoctor == null)
-        {
-            linkedDoctor = new Doctor
-            {
-                FirstName = "Seeded",
-                LastName = "Doctor",
-                Specialization = "General Practice",
-                IdentityUserId = doctorUser.Id,
-                IsTriageQualified = true
-            };
-
-            await clinicContext.Doctors.AddAsync(linkedDoctor);
-            await clinicContext.SaveChangesAsync();
-            logger.LogInformation("Seeded doctor profile linked to {Email}.", doctorEmail);
-        }
-
-        if (!clinicContext.Patients.Any())
-        {
-            var testPatients = new List<Patient>
-            {
-                new Patient
-                {
-                    PatientPublicId = SecureIdGenerator.GenerateID(15, "PA"),
-                    FirstName       = "Travis",
-                    LastName        = "Eweka",
-                    DateOfBirth     = new DateOnly(2000, 5, 15),
-                    Gender          = "Male",
-                    PhoneNumber     = "555-0100",
-                    HealthCardNo    = "1234567890-TR",
-                    Type            = "Enrolled",
-                    Email           = "travis@example.com",
-                },
-                new Patient
-                {
-                    PatientPublicId = SecureIdGenerator.GenerateID(15, "PA"),
-                    FirstName       = "Sarah",
-                    LastName        = "Connor",
-                    DateOfBirth     = new DateOnly(1985, 2, 28),
-                    Gender          = "Female",
-                    PhoneNumber     = "555-0101",
-                    HealthCardNo    = "0987654321-SA",
-                    Type            = "Walk-in",
-                    Email           = "sarah.c@example.com",
-                },
-                new Patient
-                {
-                    PatientPublicId = SecureIdGenerator.GenerateID(15, "PA"),
-                    FirstName       = "Bruce",
-                    LastName        = "Wayne",
-                    DateOfBirth     = new DateOnly(1990, 11, 3),
-                    Gender          = "Male",
-                    PhoneNumber     = "555-0102",
-                    Email           = "bruce.w@example.com",
-                    HealthCardNo    = "1122334455-BR",
-                    Type            = "Enrolled"
-                }
-            };
-
-            await clinicContext.Patients.AddRangeAsync(testPatients);
-            await clinicContext.SaveChangesAsync();
-            logger.LogInformation("Seeded {Count} test patients.", testPatients.Count);
-        }
-    }
-    catch (Exception ex)
-    {
-        logger.LogCritical(ex, "A critical error occurred during database seed.");
-    }
-}
-
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;

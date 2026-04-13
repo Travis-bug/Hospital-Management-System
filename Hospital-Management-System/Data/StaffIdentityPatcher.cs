@@ -1,95 +1,265 @@
+using Hospital_Management_System.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-// Make sure to add your using statements for your models and context!
-using Hospital_Management_System.Models; 
 
 namespace Hospital_Management_System.Data;
 
 public static class StaffIdentityPatcher
 {
+    private static readonly string[] SupportedRoles =
+    [
+        "Manager",
+        "Admin",
+        "Doctor",
+        "Nurse",
+        "Secretary"
+    ];
+
     public static async Task SyncStaffToIdentityAsync(IServiceProvider serviceProvider)
     {
         var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var passwordHasher = serviceProvider.GetRequiredService<IPasswordHasher<IdentityUser>>();
         var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var clinicDb = serviceProvider.GetRequiredService<ClinicContext>();
+        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
-        // 1. Ensure all Roles exist first
-        string[] roles = { "Manager", "Admin", "Doctor", "Nurse", "Secretary" };
-        foreach (var role in roles)
+        var defaultPassword = configuration["SeedSettings:DefaultStaffPassword"];
+        if (string.IsNullOrWhiteSpace(defaultPassword))
+        {
+            throw new InvalidOperationException("SeedSettings:DefaultStaffPassword is missing.");
+        }
+
+        var emailDomain = configuration["SeedSettings:DemoIdentityEmailDomain"] ?? "hospital.com";
+
+        await EnsureRolesAsync(roleManager);
+
+        await SyncRoleAsync(
+            clinicDb.Doctors,
+            "Doctor",
+            staff => staff.PublicId,
+            staff => staff.FirstName,
+            staff => staff.LastName,
+            staff => staff.IdentityUserId,
+            (staff, identityUserId) => staff.IdentityUserId = identityUserId,
+            userManager,
+            passwordHasher,
+            logger,
+            defaultPassword,
+            emailDomain);
+
+        await SyncRoleAsync(
+            clinicDb.Nurses,
+            "Nurse",
+            staff => staff.PublicId,
+            staff => staff.FirstName,
+            staff => staff.LastName,
+            staff => staff.IdentityUserId,
+            (staff, identityUserId) => staff.IdentityUserId = identityUserId,
+            userManager,
+            passwordHasher,
+            logger,
+            defaultPassword,
+            emailDomain);
+
+        await SyncRoleAsync(
+            clinicDb.Secretaries,
+            "Secretary",
+            staff => staff.PublicId,
+            staff => staff.FirstName,
+            staff => staff.LastName,
+            staff => staff.IdentityUserId,
+            (staff, identityUserId) => staff.IdentityUserId = identityUserId,
+            userManager,
+            passwordHasher,
+            logger,
+            defaultPassword,
+            emailDomain);
+
+        await SyncRoleAsync(
+            clinicDb.AdministrativeAssistants,
+            "Admin",
+            staff => staff.PublicId,
+            staff => staff.FirstName,
+            staff => staff.LastName,
+            staff => staff.IdentityUserId,
+            (staff, identityUserId) => staff.IdentityUserId = identityUserId,
+            userManager,
+            passwordHasher,
+            logger,
+            defaultPassword,
+            emailDomain);
+
+        await SyncRoleAsync(
+            clinicDb.Managers,
+            "Manager",
+            staff => staff.PublicId,
+            staff => staff.FirstName,
+            staff => staff.LastName,
+            staff => staff.IdentityUserId,
+            (staff, identityUserId) => staff.IdentityUserId = identityUserId,
+            userManager,
+            passwordHasher,
+            logger,
+            defaultPassword,
+            emailDomain);
+
+        await clinicDb.SaveChangesAsync();
+    }
+
+    private static async Task EnsureRolesAsync(RoleManager<IdentityRole> roleManager)
+    {
+        foreach (var role in SupportedRoles)
         {
             if (!await roleManager.RoleExistsAsync(role))
             {
                 await roleManager.CreateAsync(new IdentityRole(role));
             }
         }
-
-        var config = serviceProvider.GetRequiredService<IConfiguration>();
-        var defaultPassword = config["SeedSettings:DefaultStaffPassword"];
-
-        if (string.IsNullOrEmpty(defaultPassword))
-        {
-            throw new Exception("CRITICAL: DefaultStaffPassword is missing from appsettings.json!");
-        }
-        
-        
-
-        // 2. Patch Doctors
-        var doctors = await clinicDb.Doctors.Where(d => string.IsNullOrEmpty(d.IdentityUserId)).ToListAsync();
-        foreach (var doc in doctors)
-        {
-            var email = $"{doc.FirstName.ToLower()}.{doc.LastName.ToLower()}@hospital.com";
-            await CreateAndLinkUser(userManager, doc, email, defaultPassword, "Doctor");
-        }
-
-        // 3. Patch Nurses
-        var nurses = await clinicDb.Nurses.Where(n => string.IsNullOrEmpty(n.IdentityUserId)).ToListAsync();
-        foreach (var nurse in nurses)
-        {
-            var email = $"{nurse.FirstName.ToLower()}.{nurse.LastName.ToLower()}@hospital.com";
-            await CreateAndLinkUser(userManager, nurse, email, defaultPassword, "Nurse");
-        }
-
-        // 4. Patch Managers
-        var managers = await clinicDb.Managers.Where(m => string.IsNullOrEmpty(m.IdentityUserId)).ToListAsync();
-        foreach (var manager in managers)
-        {
-            var email = $"{manager.FirstName.ToLower()}.{manager.LastName.ToLower()}@hospital.com";
-            await CreateAndLinkUser(userManager, manager, email, defaultPassword, "Manager");
-        }
-
-        // 5. Patch Admins (Administrative Assistants)
-        var admins = await clinicDb.AdministrativeAssistants.Where(a => string.IsNullOrEmpty(a.IdentityUserId)).ToListAsync();
-        foreach (var admin in admins)
-        {
-            var email = $"{admin.FirstName.ToLower()}.{admin.LastName.ToLower()}@hospital.com";
-            await CreateAndLinkUser(userManager, admin, email, defaultPassword, "Admin");
-        }
-
-        // Save the links to the clinic database!
-        await clinicDb.SaveChangesAsync();
     }
 
-    
-    // Main Method used to create and link User_identity to Staffs
-    private static async Task CreateAndLinkUser(UserManager<IdentityUser> userManager, dynamic staffMember, string email, string password, string role)
+    private static async Task SyncRoleAsync<TStaff>(
+        DbSet<TStaff> staffSet,
+        string role,
+        Func<TStaff, string> publicIdSelector,
+        Func<TStaff, string> firstNameSelector,
+        Func<TStaff, string> lastNameSelector,
+        Func<TStaff, string?> identityUserIdSelector,
+        Action<TStaff, string> identityUserIdSetter,
+        UserManager<IdentityUser> userManager,
+        IPasswordHasher<IdentityUser> passwordHasher,
+        ILogger logger,
+        string defaultPassword,
+        string emailDomain)
+        where TStaff : class
     {
-        // Check if users already exist in the auth DB, just in case
-        var existingUser = await userManager.FindByEmailAsync(email);
-        if (existingUser == null)
+        var staffMembers = await staffSet.ToListAsync();
+
+        foreach (var staffMember in staffMembers)
         {
-            var newUser = new IdentityUser { UserName = email, Email = email };
-            var result = await userManager.CreateAsync(newUser, password);
-            
-            if (result.Succeeded)
+            var publicId = publicIdSelector(staffMember);
+            var expectedEmail = BuildSeedEmail(role, publicId, emailDomain);
+            var createdNewUser = false;
+
+            IdentityUser? user = null;
+            var linkedIdentityUserId = identityUserIdSelector(staffMember);
+            if (!string.IsNullOrWhiteSpace(linkedIdentityUserId))
             {
-                await userManager.AddToRoleAsync(newUser, role);
-                staffMember.IdentityUserId = newUser.Id; // Link them!
-                Console.WriteLine($"[PATCHER] Created {role} login: {email}");
+                user = await userManager.FindByIdAsync(linkedIdentityUserId);
+                if (user == null)
+                {
+                    logger.LogWarning(
+                        "[PATCHER] {Role} staff {PublicId} referenced missing identity user {IdentityUserId}. Rebuilding login.",
+                        role,
+                        publicId,
+                        linkedIdentityUserId);
+                }
             }
+
+            user ??= await userManager.FindByEmailAsync(expectedEmail);
+
+            if (user == null)
+            {
+                user = new IdentityUser
+                {
+                    UserName = expectedEmail,
+                    Email = expectedEmail,
+                    EmailConfirmed = true,
+                    LockoutEnabled = true
+                };
+
+                var createResult = await userManager.CreateAsync(user, defaultPassword);
+                if (!createResult.Succeeded)
+                {
+                    logger.LogError(
+                        "[PATCHER] Failed to create {Role} login for {PublicId}: {Errors}",
+                        role,
+                        publicId,
+                        string.Join(", ", createResult.Errors.Select(error => error.Description)));
+                    continue;
+                }
+
+                createdNewUser = true;
+
+                logger.LogInformation(
+                    "[PATCHER] Created {Role} login {Email} for staff {PublicId}.",
+                    role,
+                    expectedEmail,
+                    publicId);
+            }
+
+            await NormalizeIdentityAsync(
+                userManager,
+                passwordHasher,
+                user,
+                role,
+                expectedEmail,
+                defaultPassword,
+                createdNewUser);
+
+            identityUserIdSetter(staffMember, user.Id);
+
+            logger.LogInformation(
+                "[PATCHER] Synced {Role} staff {PublicId} ({FirstName} {LastName}) -> {Email}.",
+                role,
+                publicId,
+                firstNameSelector(staffMember),
+                lastNameSelector(staffMember),
+                expectedEmail);
         }
-        else
+    }
+
+    private static string BuildSeedEmail(string role, string publicId, string emailDomain)
+    {
+        return $"{role.ToLowerInvariant()}.{publicId.ToLowerInvariant()}@{emailDomain}";
+    }
+
+    private static async Task NormalizeIdentityAsync(
+        UserManager<IdentityUser> userManager,
+        IPasswordHasher<IdentityUser> passwordHasher,
+        IdentityUser user,
+        string requiredRole,
+        string expectedEmail,
+        string defaultPassword,
+        bool createdNewUser)
+    {
+        // Demo users created from clinic-side seed data get deterministic emails so
+        // the dataset is easy to reason about. Existing linked users are not renamed
+        // or re-passworded on every restart because that would override real staff
+        // provisioning state.
+        if (createdNewUser)
         {
-            staffMember.IdentityUserId = existingUser.Id; // Link them if they somehow existed
+            user.UserName = expectedEmail;
+            user.Email = expectedEmail;
+            user.PasswordHash = passwordHasher.HashPassword(user, defaultPassword);
+            user.SecurityStamp = Guid.NewGuid().ToString("N");
+        }
+
+        user.EmailConfirmed = true;
+        user.LockoutEnabled = true;
+
+        var updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Unable to update the identity record for {expectedEmail}: {string.Join(", ", updateResult.Errors.Select(error => error.Description))}");
+        }
+
+        var currentRoles = await userManager.GetRolesAsync(user);
+        foreach (var role in currentRoles.Where(role => !string.Equals(role, requiredRole, StringComparison.OrdinalIgnoreCase)))
+        {
+            await userManager.RemoveFromRoleAsync(user, role);
+        }
+
+        if (!await userManager.IsInRoleAsync(user, requiredRole))
+        {
+            await userManager.AddToRoleAsync(user, requiredRole);
+        }
+
+        if (createdNewUser)
+        {
+            await userManager.SetLockoutEndDateAsync(user, null);
+            await userManager.ResetAccessFailedCountAsync(user);
         }
     }
 }
