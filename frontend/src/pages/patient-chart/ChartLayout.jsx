@@ -17,6 +17,7 @@ function normalizePatient(patient) {
     healthCardNo: patient.healthCardNo,
     type: patient.type,
     lastModified: patient.lastModified,
+    doctorPublicId: patient.doctorPublicId,
   };
 }
 
@@ -25,6 +26,7 @@ export default function ChartLayout() {
   const [patient, setPatient] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -57,7 +59,12 @@ export default function ChartLayout() {
     return () => {
       isMounted = false;
     };
-  }, [patientId]);
+  }, [patientId, refreshKey]);
+
+  const refreshPatient = () => {
+    setIsLoading(true);
+    setRefreshKey((current) => current + 1);
+  };
 
   if (isLoading) {
     return (
@@ -135,7 +142,7 @@ export default function ChartLayout() {
           {/* Outlet context keeps the selected patient in one place so the chart
               pages do not each need to refetch or re-derive it in phase one. */}
           <div className="p-6">
-            <Outlet context={{ patient }} />
+            <Outlet context={{ patient, refreshPatient }} />
           </div>
         </div>
       </section>

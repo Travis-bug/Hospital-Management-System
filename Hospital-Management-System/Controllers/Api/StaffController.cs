@@ -12,7 +12,7 @@ namespace Hospital_Management_System.Controllers.Api;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Manager,Admin")]
+[Authorize]
 public class StaffController(
     ClinicContext clinicContext,
     AppIdentityDbContext identityContext,
@@ -20,6 +20,7 @@ public class StaffController(
     RoleManager<IdentityRole> roleManager) : ControllerBase
 {
     [HttpGet]
+    [Authorize(Roles = "Manager,Admin,Secretary")]
     public async Task<ActionResult<IEnumerable<StaffDirectoryItemDto>>> GetStaff()
     {
         var emailByIdentityId = await identityContext.Users
@@ -95,6 +96,7 @@ public class StaffController(
     }
 
     [HttpPost]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<ActionResult<ProvisionedStaffAccountDto>> CreateStaff([FromBody] CreateStaffAccountDto dto)
     {
         var actorRole = User.GetRequiredRole();
