@@ -39,7 +39,7 @@ public sealed class PatientControllerTests
         await context.SaveChangesAsync();
 
         var patientService = new PatientService(context, new TestEnrollmentService(), new TestAuditService());
-        var controller = new PatientController(context, patientService, new TestEnrollmentService())
+        var controller = new PatientController(patientService, new TestEnrollmentService())
         {
             ControllerContext = new ControllerContext
             {

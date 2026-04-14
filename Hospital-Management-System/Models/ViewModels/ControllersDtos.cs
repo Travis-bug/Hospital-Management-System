@@ -41,6 +41,26 @@ public record UpdatePatientDto(
     string Email
 );
 
+/// <summary>
+/// Public-safe patient chart summary used by the SPA chart shell.
+/// Keeps the endpoint off the raw EF Patient entity graph.
+/// </summary>
+public record PatientDetailDto(
+    string PatientPublicId,
+    string FirstName,
+    string LastName,
+    DateOnly DateOfBirth,
+    string? Address,
+    DateTime CreatedAt,
+    DateTime LastModified,
+    string? PhoneNumber,
+    string? Email,
+    string? Gender,
+    string HealthCardNo,
+    string Type,
+    string? DoctorPublicId
+);
+
 // ─────────────────────────────────────────────────────────────────
 // VISIT DTOs
 // ─────────────────────────────────────────────────────────────────
@@ -109,6 +129,7 @@ public record AppointmentDetailDto(
 /// <summary>
 /// Minimal patient data needed in appointment schedule responses.
 /// Keeps the API useful for staff without exposing the full patient entity graph.
+/// shows at the small box before clicking for more details
 /// </summary>
 public record AppointmentPatientSummaryDto(
     string PublicId,

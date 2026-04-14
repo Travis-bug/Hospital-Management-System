@@ -10,6 +10,14 @@ namespace Hospital_Management_System.Services.PatientManagement
         Task<Patient?> GetByIdAsync(int patientid);
          
         Task <Patient?> GetByPublicIdAsync(string publicId, string role, int currentUserId, string actorPublicId);
+
+        Task<PatientDetailDto?> GetDetailByPublicIdAsync(string publicId, string role, int currentUserId, string actorPublicId);
+
+        Task<IEnumerable<PatientVitalListItemDto>> GetVitalsByPatientPublicIdAsync(string patientPublicId, string role, int currentUserId);
+
+        Task<IEnumerable<PrescriptionListItemDto>> GetPrescriptionsByPatientPublicIdAsync(string patientPublicId, string role, int currentUserId);
+
+        Task<IEnumerable<TestResultListItemDto>> GetTestResultsByPatientPublicIdAsync(string patientPublicId, string role, int currentUserId);
         
         
         Task CreateAsync(EnrollPatientDto dto);

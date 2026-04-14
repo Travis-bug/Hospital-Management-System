@@ -1,4 +1,3 @@
-using Hospital_Management_System.Data;
 using Hospital_Management_System.Models;
 using Hospital_Management_System.Models.ViewModels;
 using Hospital_Management_System.Services.ClinicalRecording;
@@ -6,7 +5,6 @@ using Hospital_Management_System.Services.PatientManagement;
 using Hospital_Management_System.Services.StaffManagement;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Hospital_Management_System.Controllers.Api;
 
@@ -14,7 +12,6 @@ namespace Hospital_Management_System.Controllers.Api;
 [Route("api/[controller]")]
 [Authorize]
 public class PatientController(
-    ClinicContext clinicContext,
     IPatientService patientService,
     IEnrollmentService enrollmentService) : ControllerBase
 {
@@ -48,13 +45,13 @@ public class PatientController(
     /// </summary>
     [HttpGet("{publicId}")]
     [Authorize(Roles = "Manager,Admin,Secretary,Doctor,Nurse")]
-    public async Task<ActionResult<Patient>> GetPatient(string publicId)
+    public async Task<ActionResult<PatientDetailDto>> GetPatient(string publicId)
     {
         var role = User.GetRequiredRole();
         var currentUserId = User.GetRequiredDomainUserId();
         var actorPublicId = User.GetRequiredActorPublicId();
 
-        var patient = await patientService.GetByPublicIdAsync(publicId, role, currentUserId, actorPublicId);
+        var patient = await patientService.GetDetailByPublicIdAsync(publicId, role, currentUserId, actorPublicId);
         if (patient == null)
         {
             return NotFound();
@@ -100,30 +97,7 @@ public class PatientController(
     {
         var role = User.GetRequiredRole();
         var currentUserId = User.GetRequiredDomainUserId();
-        var actorPublicId = User.GetRequiredActorPublicId();
-
-        var patient = await patientService.GetByPublicIdAsync(patientPublicId, role, currentUserId, actorPublicId);
-        if (patient == null)
-        {
-            return NotFound();
-        }
-
-        var vitals = await clinicContext.PatientVitals
-            .AsNoTracking()
-            .Include(vital => vital.Nurse)
-            .Include(vital => vital.Visits)
-            .Where(vital => vital.Visits.PatientId == patient.PatientId)
-            .OrderByDescending(vital => vital.RecordedAt)
-            .Select(vital => new PatientVitalListItemDto(
-                vital.Visits.VisitPublicId,
-                vital.RecordedAt,
-                vital.Weight,
-                vital.Height,
-                vital.BloodPressure,
-                vital.Temperature,
-                vital.Nurse.PublicId,
-                $"{vital.Nurse.FirstName} {vital.Nurse.LastName}"))
-            .ToListAsync();
+        var vitals = await patientService.GetVitalsByPatientPublicIdAsync(patientPublicId, role, currentUserId);
 
         return Ok(vitals);
     }
@@ -136,30 +110,7 @@ public class PatientController(
     {
         var role = User.GetRequiredRole();
         var currentUserId = User.GetRequiredDomainUserId();
-        var actorPublicId = User.GetRequiredActorPublicId();
-
-        var patient = await patientService.GetByPublicIdAsync(patientPublicId, role, currentUserId, actorPublicId);
-        if (patient == null)
-        {
-            return NotFound();
-        }
-
-        var prescriptions = await clinicContext.Prescriptions
-            .AsNoTracking()
-            .Include(prescription => prescription.Doctor)
-            .Include(prescription => prescription.Result)
-            .Include(prescription => prescription.Visits)
-            .Where(prescription => prescription.Visits != null && prescription.Visits.PatientId == patient.PatientId)
-            .OrderByDescending(prescription => prescription.PrescriptionId)
-            .Select(prescription => new PrescriptionListItemDto(
-                prescription.PublicId,
-                prescription.MedicineName,
-                prescription.Dosage,
-                prescription.Visits != null ? prescription.Visits.VisitPublicId : null,
-                prescription.Doctor != null ? prescription.Doctor.PublicId : null,
-                prescription.Doctor != null ? $"{prescription.Doctor.FirstName} {prescription.Doctor.LastName}" : null,
-                prescription.Result != null ? prescription.Result.PublicTestId : null))
-            .ToListAsync();
+        var prescriptions = await patientService.GetPrescriptionsByPatientPublicIdAsync(patientPublicId, role, currentUserId);
 
         return Ok(prescriptions);
     }
@@ -170,30 +121,7 @@ public class PatientController(
     {
         var role = User.GetRequiredRole();
         var currentUserId = User.GetRequiredDomainUserId();
-        var actorPublicId = User.GetRequiredActorPublicId();
-
-        var patient = await patientService.GetByPublicIdAsync(patientPublicId, role, currentUserId, actorPublicId);
-        if (patient == null)
-        {
-            return NotFound();
-        }
-
-        var results = await clinicContext.TestResults
-            .AsNoTracking()
-            .Include(result => result.Nurse)
-            .Include(result => result.Test)
-            .Include(result => result.Visit)
-            .Where(result => result.Visit.PatientId == patient.PatientId)
-            .OrderByDescending(result => result.ResultDate)
-            .Select(result => new TestResultListItemDto(
-                result.PublicTestId,
-                result.ResultDate,
-                result.Findings,
-                result.Test.TestName,
-                result.Visit.VisitPublicId,
-                result.Nurse.PublicId,
-                $"{result.Nurse.FirstName} {result.Nurse.LastName}"))
-            .ToListAsync();
+        var results = await patientService.GetTestResultsByPatientPublicIdAsync(patientPublicId, role, currentUserId);
 
         return Ok(results);
     }

@@ -9,6 +9,10 @@ const admissionStatusOptions = [
   "Triage Pending",
 ];
 
+function displayValue(value, fallback = "---") {
+  return value ?? fallback;
+}
+
 export default function VisitDetails({
   patient,
   visit,
@@ -17,7 +21,7 @@ export default function VisitDetails({
   onSave,
   isSaving,
 }) {
-  if (!visit) {
+  if (!visit || !classificationDraft) {
     return (
       <section className="panel-shell flex min-h-[420px] items-center justify-center p-8">
         <div className="max-w-md text-center">
@@ -39,12 +43,12 @@ export default function VisitDetails({
             <p className="section-title text-slate-300">Visit Controller</p>
             <h3 className="mt-2 text-2xl font-semibold">{visit.publicId}</h3>
             <p className="mt-2 text-sm text-slate-300">
-              {patient.firstName} {patient.lastName} • {visit.location}
+              {patient.firstName} {patient.lastName} • {displayValue(visit.location)}
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-            <p>Arrival Source: {visit.arrivalSource}</p>
-            <p className="mt-1">Attending: {visit.attendingLabel}</p>
+            <p>Arrival Source: {displayValue(visit.arrivalSource)}</p>
+            <p className="mt-1">Attending: {displayValue(visit.attendingLabel)}</p>
           </div>
         </div>
       </div>
@@ -112,36 +116,55 @@ export default function VisitDetails({
             </label>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <ClipboardCheck className="h-4 w-4 text-blue-700" />
-              Draft Payload Preview
-            </div>
-            <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm text-slate-100">
-{JSON.stringify(
-  {
-    visitPublicId: visit.publicId,
-    patientPublicId: patient.publicId,
-    ...classificationDraft,
-  },
-  null,
-  2,
-)}
-            </pre>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <article className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <ClipboardCheck className="h-4 w-4 text-blue-700" />
+                Diagnosis
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-700">{displayValue(visit.diagnosis)}</p>
+            </article>
+
+            <article className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <ClipboardCheck className="h-4 w-4 text-blue-700" />
+                Treatment
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-700">{displayValue(visit.treatment)}</p>
+            </article>
+
+            <article className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <ClipboardCheck className="h-4 w-4 text-blue-700" />
+                Visit Notes
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-700">{displayValue(visit.visitNotes)}</p>
+            </article>
           </div>
+
         </div>
 
         <aside className="space-y-4">
           <article className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
             <p className="text-sm font-semibold text-slate-500">Visit Date</p>
             <p className="mt-2 text-xl font-semibold text-slate-900">
-              {new Date(visit.visitDate).toLocaleString()}
+              {visit.visitDate ? new Date(visit.visitDate).toLocaleString() : "---"}
             </p>
           </article>
 
           <article className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
             <p className="text-sm font-semibold text-slate-500">Chief Complaint</p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">{visit.primaryComplaint}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">{displayValue(visit.primaryComplaint)}</p>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+            <p className="text-sm font-semibold text-slate-500">Diagnosis</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">{displayValue(visit.diagnosis)}</p>
+          </article>
+
+          <article className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+            <p className="text-sm font-semibold text-slate-500">Treatment</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">{displayValue(visit.treatment)}</p>
           </article>
 
           <button

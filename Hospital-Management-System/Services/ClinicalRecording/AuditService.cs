@@ -9,6 +9,7 @@ public class AuditService : IAuditService
     private const int PerformedByMaxLength = 30;
     private const int EntityPublicIdMaxLength = 50;
     private const int EntityNameMaxLength = 30;
+    private const int DetailsCompatibilityMaxLength = 50;
 
     public AuditService(ClinicContext context)
     {
@@ -34,7 +35,11 @@ public class AuditService : IAuditService
             PerformedBy = Truncate(auditLog.PerformedBy, PerformedByMaxLength),
             EntityPublicId = Truncate(auditLog.EntityPublicId, EntityPublicIdMaxLength),
             ActionType = auditLog.ActionType,
-            Details = auditLog.Details,
+            // Some local MySQL environments are still on the legacy AuditLog.Details
+            // varchar(50) schema because the team applies DB changes manually instead
+            // of via EF migrations. Keep writes compatible until the live schema is
+            // confirmed as TEXT everywhere.
+            Details = Truncate(auditLog.Details, DetailsCompatibilityMaxLength),
             EntityName = Truncate(auditLog.EntityName, EntityNameMaxLength),
             Timestamp = auditLog.Timestamp
         };

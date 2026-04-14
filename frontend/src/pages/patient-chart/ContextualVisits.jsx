@@ -6,9 +6,9 @@ import VisitDetails from "./VisitDetails";
 
 function createClassificationDraft(visit) {
   return {
-    status: visit.status,
-    patientClass: visit.patientClass,
-    admissionStatus: visit.admissionStatus,
+    status: visit.status ?? "Active",
+    patientClass: visit.patientClass ?? "Emergency",
+    admissionStatus: visit.admissionStatus ?? "Triage Pending",
   };
 }
 
@@ -20,18 +20,18 @@ const visitStatusTone = {
 function normalizeVisit(visit) {
   return {
     publicId: visit.publicId,
-    status: visit.status,
-    patientClass: visit.patientClass,
-    admissionStatus: visit.admissionStatus,
-    arrivalSource: visit.arrivalSource,
+    status: visit.status ?? "Active",
+    patientClass: visit.patientClass ?? "---",
+    admissionStatus: visit.admissionStatus ?? "---",
+    arrivalSource: visit.arrivalSource ?? "---",
     visitDate: visit.checkInTime,
     checkInTime: visit.checkInTime ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Unknown",
     primaryComplaint: visit.symptoms ?? "No symptoms recorded",
     attendingLabel: visit.doctorName ?? visit.nurseName ?? "Unassigned clinician",
     location: visit.arrivalSource ?? "Clinical intake",
-    diagnosis: visit.diagnosis,
-    treatment: visit.treatment,
-    visitNotes: visit.visitNotes,
+    diagnosis: visit.diagnosis ?? "---",
+    treatment: visit.treatment ?? "---",
+    visitNotes: visit.visitNotes ?? "---",
   };
 }
 
