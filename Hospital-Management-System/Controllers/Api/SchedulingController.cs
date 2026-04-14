@@ -39,6 +39,15 @@ public class SchedulingController(
         return Ok(roster);
     }
 
+    [HttpGet("shift-rules")]
+    [Authorize(Roles = "Manager,Admin")]
+    public async Task<ActionResult<IEnumerable<ShiftRuleDto>>> GetShiftRules()
+    {
+        var role = User.GetRequiredRole();
+        var shiftRules = await schedulingQueryService.GetShiftRulesAsync(role);
+        return Ok(shiftRules);
+    }
+
     /// <summary>
     /// Assigns a staff member to a specific shift block.
     /// </summary>

@@ -20,5 +20,7 @@ public interface ISchedulingQueryService
 
 // For the Secretary or Manager seeing everyone who is in the building today
     Task<IEnumerable<DailyRosterDto>> GetDailyRosterAsync(DateTime date, string role);
+
+    Task<IEnumerable<ShiftRuleDto>> GetShiftRulesAsync(string role);
     
 } 

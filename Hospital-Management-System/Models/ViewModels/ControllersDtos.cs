@@ -166,6 +166,13 @@ public record ScheduleStaffDto(
     string   StaffType           // "Doctor" | "Nurse" | "Secretary" | etc.
 );
 
+public record ShiftRuleDto(
+    string PublicId,
+    string ShiftType,
+    TimeOnly StartTime,
+    TimeOnly EndTime
+);
+
 
 
 public class UpdateVisitEnumsDto
@@ -318,4 +325,18 @@ public record TestResultListItemDto(
     string VisitPublicId,
     string? NursePublicId,
     string? NurseName
+);
+
+public record PendingDiagnosticTestDto(
+    string TestPublicId,
+    string TestName,
+    string VisitPublicId,
+    string PatientPublicId,
+    string PatientName,
+    DateTime? OrderedAt
+);
+
+public record AddTestResultDto(
+    string TestPublicId,
+    string Findings
 );

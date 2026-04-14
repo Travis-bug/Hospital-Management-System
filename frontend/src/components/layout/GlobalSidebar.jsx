@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  CalendarRange,
   ClipboardList,
   FlaskConical,
   LayoutDashboard,
@@ -27,6 +28,12 @@ const globalNavItems = [
     to: "/appointments",
     icon: CalendarDays,
     description: "Review booked and upcoming schedules.",
+  },
+  {
+    label: "Schedule",
+    to: "/schedule",
+    icon: CalendarRange,
+    description: "Manage personal shifts and daily staffing rosters.",
   },
   {
     label: "Tests",

@@ -204,4 +204,22 @@ public class SchedulingQueryService : ISchedulingQueryService
      return fullRoster.OrderBy(r => r.StartTime).ToList();
  }
 
+ public async Task<IEnumerable<ShiftRuleDto>> GetShiftRulesAsync(string role)
+ {
+     if (role != "Manager" && role != "Admin")
+     {
+         throw new UnauthorizedAccessException("You are not authorized to view shift rules.");
+     }
+
+     return await _context.Shifts
+         .AsNoTracking()
+         .OrderBy(shift => shift.StartTime)
+         .Select(shift => new ShiftRuleDto(
+             shift.PublicId,
+             shift.ShiftType,
+             shift.StartTime,
+             shift.EndTime))
+         .ToListAsync();
+ }
+
 } 

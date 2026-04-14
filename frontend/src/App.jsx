@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import StaffProvisioning from "./pages/admin/StaffProvisioning";
 import AppointmentsWorkspace from "./pages/global/AppointmentsWorkspace";
 import PatientList from "./pages/global/PatientList";
+import ScheduleWorkspace from "./pages/global/ScheduleWorkspace";
 import TestResultsWorkspace from "./pages/global/TestResultsWorkspace";
 import VisitsWorkspace from "./pages/global/VisitsWorkspace";
 import ChartLayout from "./pages/patient-chart/ChartLayout";
@@ -105,6 +106,10 @@ const router = createBrowserRouter([
               {
                 path: "appointments",
                 element: <AppointmentsWorkspace />,
+              },
+              {
+                path: "schedule",
+                element: <ScheduleWorkspace />,
               },
               {
                 path: "tests",

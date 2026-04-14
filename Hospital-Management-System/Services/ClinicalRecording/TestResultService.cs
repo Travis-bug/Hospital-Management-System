@@ -1,4 +1,5 @@
 using Hospital_Management_System.Models;
+using Hospital_Management_System.Models.ViewModels;
 using Hospital_Management_System.Utilities; // Where your IdGenerator lives
 using Microsoft.EntityFrameworkCore;
 using Hospital_Management_System.Data;
@@ -12,6 +13,36 @@ public class TestResultService : ITestResultsService
     {
         _context = context;
         _auditService = auditService;
+    }
+
+    public async Task<TestResult> AddTestResultAsync(AddTestResultDto dto, int currentUserId, string role, string actorPublicId)
+    {
+        var diagnosticTest = await _context.DiagnosticTests
+            .Include(test => test.Visit)
+            .FirstOrDefaultAsync(test => test.PublicId == dto.TestPublicId);
+
+        if (diagnosticTest == null)
+        {
+            throw new KeyNotFoundException("Diagnostic test not found.");
+        }
+
+        var nurseId = role switch
+        {
+            "Nurse" => currentUserId,
+            "Doctor" when diagnosticTest.Visit.NurseId.HasValue => diagnosticTest.Visit.NurseId.Value,
+            "Doctor" => throw new InvalidOperationException("A nurse must be assigned to the visit before a doctor can record the result."),
+            _ => throw new UnauthorizedAccessException("You are not authorized to add test results.")
+        };
+
+        var testResult = new TestResult
+        {
+            TestId = diagnosticTest.TestId,
+            VisitId = diagnosticTest.VisitId,
+            NurseId = nurseId,
+            Findings = dto.Findings
+        };
+
+        return await AddTestResultAsync(testResult, currentUserId, role, actorPublicId);
     }
 
 
@@ -111,6 +142,40 @@ public class TestResultService : ITestResultsService
         }
 
         return await query.OrderByDescending(r => r.ResultDate).ToListAsync();
+    }
+
+    public async Task<IEnumerable<PendingDiagnosticTestDto>> GetPendingTestsAsync(string role, int currentUserId)
+    {
+        var query = _context.DiagnosticTests
+            .AsNoTracking()
+            .Include(test => test.Visit)
+                .ThenInclude(visit => visit.Patient)
+            .Include(test => test.TestResults)
+            .AsQueryable();
+
+        switch (role)
+        {
+            case "Doctor":
+                query = query.Where(test => test.Visit.DoctorId == currentUserId);
+                break;
+            case "Nurse":
+                query = query.Where(test => test.Visit.AdmissionStatus != "Discharged");
+                break;
+            default:
+                throw new UnauthorizedAccessException("Role not authorized to view pending diagnostic tests.");
+        }
+
+        return await query
+            .Where(test => !test.TestResults.Any())
+            .OrderByDescending(test => test.OrderedAt)
+            .Select(test => new PendingDiagnosticTestDto(
+                test.PublicId,
+                test.TestName,
+                test.Visit.VisitPublicId,
+                test.Visit.Patient.PatientPublicId,
+                $"{test.Visit.Patient.FirstName} {test.Visit.Patient.LastName}",
+                test.OrderedAt))
+            .ToListAsync();
     }
 
 
