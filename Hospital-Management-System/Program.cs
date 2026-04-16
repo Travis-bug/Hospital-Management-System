@@ -29,15 +29,14 @@ var builder = WebApplication.CreateBuilder(args);
 // M-04: Structured error responses for API endpoints
 builder.Services.AddProblemDetails();
 
-// MVC + Identity UI endpoints
-builder.Services.AddControllersWithViews()
+// SPA host + API controllers
+builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         // EF entities expose bidirectional navigation properties, so API responses can
         // otherwise recurse infinitely when Swagger tries to serialize them.
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
-builder.Services.AddRazorPages();
 
 
 
@@ -111,7 +110,7 @@ builder.Services.AddDbContext<ClinicContext>(options =>
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount     = true;
-        options.Lockout.MaxFailedAccessAttempts   = 30;
+        options.Lockout.MaxFailedAccessAttempts   = 5;
         options.Lockout.DefaultLockoutTimeSpan    = TimeSpan.FromMinutes(15);
         options.Lockout.AllowedForNewUsers        = true;
     })
@@ -253,8 +252,84 @@ app.UseExceptionHandler(errorApp =>
        // }
        // context.Response.Redirect("/Home/Error");
        
-       context.Response.StatusCode = statusCode;
-       return;   // ide marked this as redundant 
+        var pageTitle = statusCode switch
+        {
+            StatusCodes.Status400BadRequest => "The request could not be processed.",
+            StatusCodes.Status403Forbidden => "You do not have access to this page.",
+            StatusCodes.Status404NotFound => "The requested page was not found.",
+            _ => "The application encountered an unexpected error."
+        };
+
+        var pageDetail = exception?.Message ?? "An unexpected server-side error occurred.";
+
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.WriteAsync($@"<!DOCTYPE html>
+<html lang=""en"">
+<head>
+  <meta charset=""utf-8"" />
+  <meta name=""viewport"" content=""width=device-width, initial-scale=1"" />
+  <title>Application Error</title>
+  <style>
+    :root {{
+      color-scheme: light;
+      font-family: ""IBM Plex Sans"", ""Segoe UI"", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(30, 58, 138, 0.14), transparent 22rem),
+        radial-gradient(circle at left center, rgba(148, 163, 184, 0.2), transparent 20rem),
+        linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    }}
+    body {{
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: #0f172a;
+    }}
+    section {{
+      width: min(100%, 720px);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.12);
+      padding: 32px;
+    }}
+    p.meta {{
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #64748b;
+    }}
+    h1 {{
+      margin: 12px 0 0;
+      font-size: 32px;
+      line-height: 1.15;
+    }}
+    p {{
+      color: #475569;
+      line-height: 1.7;
+    }}
+    a {{
+      display: inline-block;
+      margin-top: 8px;
+      color: #1d4ed8;
+      font-weight: 600;
+      text-decoration: none;
+    }}
+  </style>
+</head>
+<body>
+  <section>
+    <p class=""meta"">Application Error</p>
+    <h1>{pageTitle}</h1>
+    <p>{pageDetail}</p>
+    <a href=""/"">Return to the dashboard</a>
+  </section>
+</body>
+</html>");
+        return;
        
     }));
 
@@ -318,11 +393,6 @@ app.UseRateLimiter(); // C-02
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
-app.MapRazorPages();
 app.MapControllers(); // Maps your /api/ endpoints
 
 // The SPA Fallback: Any route the API doesn't recognize gets sent to React!

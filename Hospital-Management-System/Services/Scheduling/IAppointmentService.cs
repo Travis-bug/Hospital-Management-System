@@ -14,7 +14,7 @@ namespace Hospital_Management_System.Services.Scheduling
         // GATE 2: THE GETS (Frontend Facing - Uses Public IDs & Role Checks)
         // ============================================================================
         
-        // The one you just wrote! For the Secretary or Doctor checking the daily roster.
+        // For the Secretary or Doctor checking the daily roster.
         Task<IEnumerable<AppointmentScheduleItemDto>> GetDoctorScheduleAsync(string doctorPublicId, DateTime date, string role, int currentUserId);
         
         // For clicking on a specific appointment to see the details.

@@ -1,8 +1,10 @@
 import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from "react-router-dom";
 import GlobalSidebar from "./components/layout/GlobalSidebar";
 import MainLayout from "./components/layout/MainLayout";
+import AppRouteError from "./pages/AppRouteError";
 import { useAuth } from "./contexts/AuthContext";
 import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
 import StaffProvisioning from "./pages/admin/StaffProvisioning";
 import AppointmentsWorkspace from "./pages/global/AppointmentsWorkspace";
 import PatientList from "./pages/global/PatientList";
@@ -73,20 +75,27 @@ function GlobalModeShell() {
 
 const router = createBrowserRouter([
   {
+    errorElement: <AppRouteError />,
     element: <RequireGuest />,
     children: [
       {
         path: "/login",
         element: <Login />,
       },
+      {
+        path: "*",
+        element: <Navigate to="/login" replace />,
+      },
     ],
   },
   {
+    errorElement: <AppRouteError />,
     element: <RequireAuth />,
     children: [
       {
         path: "/",
         element: <MainLayout />,
+        errorElement: <AppRouteError />,
         children: [
           {
             index: true,
@@ -119,11 +128,16 @@ const router = createBrowserRouter([
                 path: "staff-management",
                 element: <StaffProvisioning />,
               },
+              {
+                path: "*",
+                element: <NotFound />,
+              },
             ],
           },
           {
             path: "patients/:patientId",
             element: <ChartLayout />,
+            errorElement: <AppRouteError />,
             children: [
               {
                 index: true,
@@ -150,6 +164,10 @@ const router = createBrowserRouter([
                 element: <PatientTestResults />,
               },
             ],
+          },
+          {
+            path: "*",
+            element: <NotFound />,
           },
         ],
       },
