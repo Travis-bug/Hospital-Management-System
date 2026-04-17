@@ -5,6 +5,7 @@ using Hospital_Management_System.Services.StaffManagement;
 using Hospital_Management_System.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,15 +18,19 @@ public class StaffController(
     ClinicContext clinicContext,
     AppIdentityDbContext identityContext,
     UserManager<IdentityUser> userManager,
-    RoleManager<IdentityRole> roleManager) : ControllerBase
+    RoleManager<IdentityRole> roleManager,
+    IEmailSender emailSender,
+    ILogger<StaffController> logger) : ControllerBase
 {
     [HttpGet]
     [Authorize(Roles = "Manager,Admin,Secretary")]
     public async Task<ActionResult<IEnumerable<StaffDirectoryItemDto>>> GetStaff()
     {
-        var emailByIdentityId = await identityContext.Users
+        var identityInfoById = await identityContext.Users
             .AsNoTracking()
-            .ToDictionaryAsync(user => user.Id, user => user.Email);
+            .ToDictionaryAsync(
+                user => user.Id,
+                user => new IdentityAccountSnapshot(user.Email, user.EmailConfirmed));
 
         var directory = new List<StaffDirectoryItemDto>();
 
@@ -35,11 +40,11 @@ public class StaffController(
             doctor.FirstName,
             doctor.LastName,
             "Doctor",
-            doctor.IdentityUserId != null && emailByIdentityId.ContainsKey(doctor.IdentityUserId)
-                ? emailByIdentityId[doctor.IdentityUserId]
+            doctor.IdentityUserId != null && identityInfoById.ContainsKey(doctor.IdentityUserId)
+                ? identityInfoById[doctor.IdentityUserId].Email
                 : null,
             string.IsNullOrWhiteSpace(doctor.Specialization) ? "General Practice" : doctor.Specialization,
-            string.IsNullOrWhiteSpace(doctor.IdentityUserId) ? "Provisioned" : "Active")));
+            ResolveAccountStatus(doctor.IdentityUserId, identityInfoById))));
 
         var nurses = await clinicContext.Nurses.AsNoTracking().ToListAsync();
         directory.AddRange(nurses.Select(nurse => new StaffDirectoryItemDto(
@@ -47,11 +52,11 @@ public class StaffController(
             nurse.FirstName,
             nurse.LastName,
             "Nurse",
-            nurse.IdentityUserId != null && emailByIdentityId.ContainsKey(nurse.IdentityUserId)
-                ? emailByIdentityId[nurse.IdentityUserId]
+            nurse.IdentityUserId != null && identityInfoById.ContainsKey(nurse.IdentityUserId)
+                ? identityInfoById[nurse.IdentityUserId].Email
                 : null,
             "Nursing",
-            string.IsNullOrWhiteSpace(nurse.IdentityUserId) ? "Provisioned" : "Active")));
+            ResolveAccountStatus(nurse.IdentityUserId, identityInfoById))));
 
         var secretaries = await clinicContext.Secretaries.AsNoTracking().ToListAsync();
         directory.AddRange(secretaries.Select(secretary => new StaffDirectoryItemDto(
@@ -59,11 +64,11 @@ public class StaffController(
             secretary.FirstName,
             secretary.LastName,
             "Secretary",
-            secretary.IdentityUserId != null && emailByIdentityId.ContainsKey(secretary.IdentityUserId)
-                ? emailByIdentityId[secretary.IdentityUserId]
+            secretary.IdentityUserId != null && identityInfoById.ContainsKey(secretary.IdentityUserId)
+                ? identityInfoById[secretary.IdentityUserId].Email
                 : null,
             "Front Desk",
-            string.IsNullOrWhiteSpace(secretary.IdentityUserId) ? "Provisioned" : "Active")));
+            ResolveAccountStatus(secretary.IdentityUserId, identityInfoById))));
 
         var admins = await clinicContext.AdministrativeAssistants.AsNoTracking().ToListAsync();
         directory.AddRange(admins.Select(admin => new StaffDirectoryItemDto(
@@ -71,11 +76,11 @@ public class StaffController(
             admin.FirstName,
             admin.LastName,
             "Admin",
-            admin.IdentityUserId != null && emailByIdentityId.ContainsKey(admin.IdentityUserId)
-                ? emailByIdentityId[admin.IdentityUserId]
+            admin.IdentityUserId != null && identityInfoById.ContainsKey(admin.IdentityUserId)
+                ? identityInfoById[admin.IdentityUserId].Email
                 : null,
             "Operations",
-            string.IsNullOrWhiteSpace(admin.IdentityUserId) ? "Provisioned" : "Active")));
+            ResolveAccountStatus(admin.IdentityUserId, identityInfoById))));
 
         var managers = await clinicContext.Managers.AsNoTracking().ToListAsync();
         directory.AddRange(managers.Select(manager => new StaffDirectoryItemDto(
@@ -83,11 +88,11 @@ public class StaffController(
             manager.FirstName,
             manager.LastName,
             "Manager",
-            manager.IdentityUserId != null && emailByIdentityId.ContainsKey(manager.IdentityUserId)
-                ? emailByIdentityId[manager.IdentityUserId]
+            manager.IdentityUserId != null && identityInfoById.ContainsKey(manager.IdentityUserId)
+                ? identityInfoById[manager.IdentityUserId].Email
                 : null,
             "Management",
-            string.IsNullOrWhiteSpace(manager.IdentityUserId) ? "Provisioned" : "Active")));
+            ResolveAccountStatus(manager.IdentityUserId, identityInfoById))));
 
         return Ok(directory
             .OrderBy(staffMember => staffMember.Role)
@@ -127,7 +132,7 @@ public class StaffController(
         {
             UserName = normalizedEmail,
             Email = normalizedEmail,
-            EmailConfirmed = true,
+            EmailConfirmed = false,
             LockoutEnabled = true
         };
 
@@ -156,11 +161,33 @@ public class StaffController(
 
             await clinicContext.SaveChangesAsync();
 
+            var emailConfirmationToken = IdentityTokenCodec.Encode(
+                await userManager.GenerateEmailConfirmationTokenAsync(identityUser));
+            var passwordResetToken = IdentityTokenCodec.Encode(
+                await userManager.GeneratePasswordResetTokenAsync(identityUser));
+
+            var activationUrl =
+                $"{Request.Scheme}://{Request.Host}/activate-account" +
+                $"?email={Uri.EscapeDataString(normalizedEmail)}" +
+                $"&emailToken={Uri.EscapeDataString(emailConfirmationToken)}" +
+                $"&passwordToken={Uri.EscapeDataString(passwordResetToken)}";
+
+            await emailSender.SendEmailAsync(
+                normalizedEmail,
+                "Activate your Hospital Management System account",
+                BuildActivationEmailHtml(dto.FirstName.Trim(), requestedRole, activationUrl));
+
+            logger.LogInformation(
+                "Provisioned {Role} account {Email} and sent activation email.",
+                requestedRole,
+                normalizedEmail);
+
             return CreatedAtAction(nameof(GetStaff), null, new ProvisionedStaffAccountDto(
                 publicId,
                 requestedRole,
                 normalizedEmail,
-                $"{dto.FirstName.Trim()} {dto.LastName.Trim()}"));
+                $"{dto.FirstName.Trim()} {dto.LastName.Trim()}",
+                true));
         }
         catch
         {
@@ -244,4 +271,38 @@ public class StaffController(
         await clinicContext.Managers.AddAsync(manager);
         return manager.PublicId;
     }
+
+    private static string ResolveAccountStatus(
+        string? identityUserId,
+        IReadOnlyDictionary<string, IdentityAccountSnapshot> identityInfoById)
+    {
+        if (string.IsNullOrWhiteSpace(identityUserId) || !identityInfoById.TryGetValue(identityUserId, out var account))
+        {
+            return "Provisioned";
+        }
+
+        return account.EmailConfirmed ? "Active" : "Pending Activation";
+    }
+
+    private static string BuildActivationEmailHtml(string firstName, string role, string activationUrl)
+    {
+        return $"""
+<div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+  <p style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #64748b;">Hospital Management System</p>
+  <h1 style="font-size: 28px; margin-bottom: 8px;">Activate your staff account</h1>
+  <p>Hello {System.Net.WebUtility.HtmlEncode(firstName)},</p>
+  <p>An internal {System.Net.WebUtility.HtmlEncode(role)} account has been created for you in the Hospital Management System.</p>
+  <p>To activate the account, confirm your email address and set your real password using the secure link below.</p>
+  <p>
+    <a href="{activationUrl}" style="display: inline-block; padding: 12px 18px; border-radius: 999px; background: #1d4ed8; color: white; text-decoration: none; font-weight: 600;">
+      Activate account
+    </a>
+  </p>
+  <p>If the button does not work, open this URL directly:</p>
+  <p><a href="{activationUrl}">{activationUrl}</a></p>
+</div>
+""";
+    }
+
+    private sealed record IdentityAccountSnapshot(string? Email, bool EmailConfirmed);
 }

@@ -223,6 +223,17 @@ public record ChangePasswordRequestDto(
 );
 
 /// <summary>
+/// Completes first-time staff onboarding by confirming the email address and
+/// setting a real password on the already-created Identity account.
+/// </summary>
+public record CompleteOnboardingDto(
+    string Email,
+    string EmailConfirmationToken,
+    string PasswordResetToken,
+    string NewPassword
+);
+
+/// <summary>
 /// Public-safe auth session payload returned to the React frontend.
 /// The cookie itself remains HTTP-only and is never exposed to JavaScript.
 /// </summary>
@@ -293,7 +304,8 @@ public record ProvisionedStaffAccountDto(
     string PublicId,
     string Role,
     string Email,
-    string DisplayName
+    string DisplayName,
+    bool ActivationEmailSent
 );
 
 public record PatientVitalListItemDto(

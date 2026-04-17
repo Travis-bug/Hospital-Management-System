@@ -4,6 +4,7 @@ using System.Threading.RateLimiting;
 using Hospital_Management_System.Data;
 using Hospital_Management_System.Models;
 using Hospital_Management_System.Services.ClinicalRecording;
+using Hospital_Management_System.Services.Infrastructure;
 using Hospital_Management_System.Services.PatientManagement;
 using Hospital_Management_System.Services.Scheduling;
 using Hospital_Management_System.Services.StaffManagement;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -124,8 +126,12 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 // ─────────────────────────────────────────────────────────────────
 builder.Services.ConfigureApplicationCookie(options =>
 {
+    options.ExpireTimeSpan       = TimeSpan.FromHours(1);
+    options.SlidingExpiration    = true;
     options.Cookie.SameSite     = SameSiteMode.Strict;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // → Always in production
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.Cookie.HttpOnly     = true;
     options.Events.OnRedirectToLogin = context =>
     {
@@ -159,6 +165,7 @@ builder.Services.AddTransient<IClaimsTransformation, DomainUserClaimsTransformat
 
 // ── Infrastructure ──────────────────────────────────────────────
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
 
 // ── Patient Management ──────────────────────────────────────────
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
@@ -407,20 +414,9 @@ app.MapFallbackToFile("index.html");
 // SQL owns the clinic-side demo data. Startup only ensures those staff
 // records have usable ASP.NET Identity accounts for local testing.
 // ═════════════════════════════════════════════════════════════════
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>(); // H-04
-    try
-    {
-        logger.LogInformation("Running Identity Patcher...");
-        await StaffIdentityPatcher.SyncStaffToIdentityAsync(scope.ServiceProvider);
-        logger.LogInformation("Patching Complete!");
-    }
-    catch (Exception ex)
-    {
-        logger.LogCritical($"Patcher Failed: {ex.Message}");
-    }
-}
+// Demo identity patching retired.
+// Staff onboarding now creates and links Identity users directly.
+// If the old local recovery patcher is ever needed again, the source has been
+// moved out of the runtime project into the repository Garb folder.
 
 app.Run();

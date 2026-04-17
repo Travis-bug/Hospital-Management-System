@@ -1,7 +1,9 @@
 using Hospital_Management_System.Data;
 using Hospital_Management_System.Models.ViewModels;
+using Hospital_Management_System.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +16,7 @@ public class AuthController(
     SignInManager<IdentityUser> signInManager,
     UserManager<IdentityUser> userManager,
     ClinicContext clinicContext,
+    IEmailSender emailSender,
     ILogger<AuthController> logger,
     IWebHostEnvironment environment) : ControllerBase
 {
@@ -78,11 +81,14 @@ public class AuthController(
 
         if (result.RequiresTwoFactor)
         {
-            // This bridge does not have an email sender wired yet, so in development
-            // we log the generated code so the 2FA flow can still be tested end-to-end.
             var emailCode = await userManager.GenerateTwoFactorTokenAsync(
                 user,
                 TokenOptions.DefaultEmailProvider);
+
+            await emailSender.SendEmailAsync(
+                user.Email!,
+                "Your Hospital Management System sign-in code",
+                BuildTwoFactorEmailHtml(user.Email!, emailCode));
 
             if (environment.IsDevelopment())
             {
@@ -160,6 +166,66 @@ public class AuthController(
         }
 
         return Unauthorized(new { message = "Invalid 2FA code." });
+    }
+
+    [HttpPost("complete-onboarding")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CompleteOnboarding([FromBody] CompleteOnboardingDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Email)
+            || string.IsNullOrWhiteSpace(dto.EmailConfirmationToken)
+            || string.IsNullOrWhiteSpace(dto.PasswordResetToken)
+            || string.IsNullOrWhiteSpace(dto.NewPassword))
+        {
+            return BadRequest(new { message = "Email, tokens, and the new password are required." });
+        }
+
+        var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        var user = await userManager.FindByEmailAsync(normalizedEmail);
+        if (user is null)
+        {
+            return BadRequest(new { message = "Activation link is invalid or has expired." });
+        }
+
+        string emailConfirmationToken;
+        string passwordResetToken;
+
+        try
+        {
+            emailConfirmationToken = IdentityTokenCodec.Decode(dto.EmailConfirmationToken);
+            passwordResetToken = IdentityTokenCodec.Decode(dto.PasswordResetToken);
+        }
+        catch (ArgumentException)
+        {
+            return BadRequest(new { message = "Activation link is invalid or malformed." });
+        }
+
+        if (!user.EmailConfirmed)
+        {
+            var confirmResult = await userManager.ConfirmEmailAsync(user, emailConfirmationToken);
+            if (!confirmResult.Succeeded)
+            {
+                return BadRequest(new
+                {
+                    message = string.Join(" ", confirmResult.Errors.Select(error => error.Description))
+                });
+            }
+        }
+
+        var resetResult = await userManager.ResetPasswordAsync(user, passwordResetToken, dto.NewPassword);
+        if (!resetResult.Succeeded)
+        {
+            return BadRequest(new
+            {
+                message = string.Join(" ", resetResult.Errors.Select(error => error.Description))
+            });
+        }
+
+        await userManager.UpdateSecurityStampAsync(user);
+
+        logger.LogInformation("Completed onboarding for {Email}.", user.Email);
+
+        return NoContent();
     }
 
     [HttpPost("logout")]
@@ -273,6 +339,21 @@ public class AuthController(
 
             _ => null
         };
+    }
+
+    private static string BuildTwoFactorEmailHtml(string email, string code)
+    {
+        return $"""
+            <div style="font-family: Arial, sans-serif; color: #0f172a;">
+              <h2 style="margin-bottom: 12px;">Hospital Management System sign-in verification</h2>
+              <p>A sign-in attempt was made for <strong>{email}</strong>.</p>
+              <p>Use the following verification code to complete the login:</p>
+              <div style="display: inline-block; margin: 16px 0; padding: 12px 18px; border-radius: 16px; background: #0f172a; color: white; font-size: 24px; font-weight: 700; letter-spacing: 4px;">
+                {code}
+              </div>
+              <p style="margin-top: 16px;">If you did not request this code, you can ignore this email.</p>
+            </div>
+            """;
     }
 
     private sealed record ActorSessionInfo(string PublicId, string DisplayName);
