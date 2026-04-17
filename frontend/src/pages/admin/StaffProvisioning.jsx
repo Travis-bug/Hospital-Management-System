@@ -78,7 +78,7 @@ export default function StaffProvisioning() {
       const response = await apiClient.post("/api/Staff", payload);
       await loadStaff();
       setSuccessMessage(
-        `Provisioned ${response.data.role} account ${response.data.publicId} for ${response.data.displayName}.`,
+        `Provisioned ${response.data.role} account ${response.data.publicId} for ${response.data.displayName}. Activation email sent to ${response.data.email}.`,
       );
     } catch (error) {
       setErrorMessage(
@@ -177,7 +177,8 @@ export default function StaffProvisioning() {
               <p className="mt-2 text-sm leading-6 text-blue-900/80">
                 This form submits one creation payload. The backend is responsible for
                 creating the clinic staff row, creating the linked `IdentityUser`, assigning
-                the correct role, and forcing a password change on first login.
+                the correct role, and sending the activation link that lets staff set a
+                permanent password on the existing account.
               </p>
             </div>
           </div>

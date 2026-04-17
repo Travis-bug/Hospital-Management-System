@@ -123,6 +123,24 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const completeOnboarding = async ({
+    email,
+    emailConfirmationToken,
+    passwordResetToken,
+    newPassword,
+  }) => {
+    try {
+      await apiClient.post("/api/auth/complete-onboarding", {
+        email,
+        emailConfirmationToken,
+        passwordResetToken,
+        newPassword,
+      });
+    } catch (error) {
+      throw new Error(getAuthErrorMessage(error, "Unable to activate the account."));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -133,6 +151,7 @@ export function AuthProvider({ children }) {
         loginStep1,
         loginStep2,
         changePassword,
+        completeOnboarding,
         logout,
       }}
     >

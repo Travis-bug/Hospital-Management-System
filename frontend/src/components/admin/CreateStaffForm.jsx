@@ -188,7 +188,8 @@ export default function CreateStaffForm({ currentUserRole, onCreateStaff, isSubm
             </div>
             <div className="mt-4 space-y-2 text-sm text-slate-600">
               <p>2FA delivery: Email</p>
-              <p>First-login password reset: Required</p>
+              <p>Activation link: Email-delivered</p>
+              <p>Permanent password setup: Required before first sign-in</p>
               <p>Self-registration: Disabled</p>
             </div>
           </div>

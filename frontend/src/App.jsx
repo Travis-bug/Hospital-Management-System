@@ -3,6 +3,7 @@ import GlobalSidebar from "./components/layout/GlobalSidebar";
 import MainLayout from "./components/layout/MainLayout";
 import AppRouteError from "./pages/AppRouteError";
 import { useAuth } from "./contexts/AuthContext";
+import ActivateAccount from "./pages/ActivateAccount";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import StaffProvisioning from "./pages/admin/StaffProvisioning";
@@ -81,6 +82,10 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
+      },
+      {
+        path: "/activate-account",
+        element: <ActivateAccount />,
       },
       {
         path: "*",
