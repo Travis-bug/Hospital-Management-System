@@ -52,3 +52,6 @@ node_modules/
 dist/
 frontend/node_modules/
 frontend/dist/
+frontend/.cert/
+Hospital-Management-System/wwwroot/
+Garb/ 

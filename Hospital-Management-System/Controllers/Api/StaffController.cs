@@ -15,6 +15,7 @@ namespace Hospital_Management_System.Controllers.Api;
 [Route("api/[controller]")]
 [Authorize]
 public class StaffController(
+    IConfiguration configuration,
     ClinicContext clinicContext,
     AppIdentityDbContext identityContext,
     UserManager<IdentityUser> userManager,
@@ -166,8 +167,9 @@ public class StaffController(
             var passwordResetToken = IdentityTokenCodec.Encode(
                 await userManager.GeneratePasswordResetTokenAsync(identityUser));
 
+            var activationBaseUrl = ResolveActivationBaseUrl(configuration, Request);
             var activationUrl =
-                $"{Request.Scheme}://{Request.Host}/activate-account" +
+                $"{activationBaseUrl}/activate-account" +
                 $"?email={Uri.EscapeDataString(normalizedEmail)}" +
                 $"&emailToken={Uri.EscapeDataString(emailConfirmationToken)}" +
                 $"&passwordToken={Uri.EscapeDataString(passwordResetToken)}";
@@ -284,6 +286,35 @@ public class StaffController(
         return account.EmailConfirmed ? "Active" : "Pending Activation";
     }
 
+    
+    
+    
+    
+    /// <summary>
+    /// This controller receives the base URL and checks if it is empty,
+    /// and if not, it trims the trailing "/", then returns the HTTP request scheme along with the host header 
+    /// </summary>
+    /// <param name="configuration"></param>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private static string ResolveActivationBaseUrl(IConfiguration configuration, HttpRequest request) 
+    {
+        var configuredBaseUrl = configuration["Frontend:PublicBaseUrl"]
+            ?? configuration["App:PublicBaseUrl"];
+
+        if (!string.IsNullOrWhiteSpace(configuredBaseUrl))
+        {
+            return configuredBaseUrl.TrimEnd('/');
+        }
+
+        return $"{request.Scheme}://{request.Host}";
+    }
+
+    
+    
+    
+    
+    
     private static string BuildActivationEmailHtml(string firstName, string role, string activationUrl)
     {
         return $"""
@@ -303,6 +334,7 @@ public class StaffController(
 </div>
 """;
     }
+    
 
     private sealed record IdentityAccountSnapshot(string? Email, bool EmailConfirmed);
 }

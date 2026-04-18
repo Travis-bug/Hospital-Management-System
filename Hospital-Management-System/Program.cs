@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.RateLimiting;
@@ -79,6 +80,29 @@ if (allowedOrigins.Length == 0)
     throw new InvalidOperationException("Cors:AllowedOrigins must be configured with explicit frontend origins.");
 }
 
+var frontendPublicBaseUrl = builder.Configuration["Frontend:PublicBaseUrl"]
+    ?? builder.Configuration["App:PublicBaseUrl"];
+
+if (!builder.Environment.IsDevelopment())
+{
+    foreach (var origin in allowedOrigins)
+    {
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri) || originUri.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new InvalidOperationException(
+                $"Production CORS origin '{origin}' is not HTTPS. Only HTTPS origins are allowed outside development.");
+        }
+    }
+
+    if (!string.IsNullOrWhiteSpace(frontendPublicBaseUrl)
+        && (!Uri.TryCreate(frontendPublicBaseUrl, UriKind.Absolute, out var frontendUri)
+            || frontendUri.Scheme != Uri.UriSchemeHttps))
+    {
+        throw new InvalidOperationException(
+            $"Frontend:PublicBaseUrl '{frontendPublicBaseUrl}' is not HTTPS. Production activation links must use HTTPS.");
+    }
+}
+
 builder.Services.AddCors(options =>
     options.AddPolicy("HmsPolicy", policy =>
         policy.WithOrigins(allowedOrigins)
@@ -87,6 +111,18 @@ builder.Services.AddCors(options =>
               .AllowCredentials()));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+builder.Services.AddHsts(options =>
+{
+    options.Preload = true;
+    options.IncludeSubDomains = true;
+    options.MaxAge = TimeSpan.FromDays(365);
+});
 
 // ─────────────────────────────────────────────────────────────────
 // DATABASE CONTEXTS
@@ -122,16 +158,13 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 
 // ─────────────────────────────────────────────────────────────────
 // M-05: COOKIE POLICY — SameSite + HttpOnly for CSRF protection
-// Switch SecurePolicy to Always once you have a valid TLS cert.
 // ─────────────────────────────────────────────────────────────────
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.ExpireTimeSpan       = TimeSpan.FromHours(1);
     options.SlidingExpiration    = true;
     options.Cookie.SameSite     = SameSiteMode.Strict;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.HttpOnly     = true;
     options.Events.OnRedirectToLogin = context =>
     {
@@ -206,6 +239,8 @@ if (builder.Environment.IsDevelopment())
 // Order matters. Each middleware only sees requests that reach it.
 // ═════════════════════════════════════════════════════════════════
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
@@ -345,10 +380,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+app.UseHttpsRedirection();
 
 // ─────────────────────────────────────────────────────────────────
 // C-03: SECURITY HEADERS
