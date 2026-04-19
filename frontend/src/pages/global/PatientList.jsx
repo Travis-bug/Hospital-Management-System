@@ -2,6 +2,8 @@ import { Search, UserPlus, UsersRound } from "lucide-react";
 import { useDeferredValue, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import apiClient from "../../api/apiClient";
+import { useAuth } from "../../contexts/AuthContext";
+import { PATIENT_ENROLLMENT_ROLES, hasRoleAccess } from "../../data/roleAccess";
 
 const fieldClassName =
   "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
@@ -36,6 +38,7 @@ function buildEnrollmentForm() {
 }
 
 export default function PatientList() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,6 +50,7 @@ export default function PatientList() {
   const [successMessage, setSuccessMessage] = useState(location.state?.flashMessage ?? "");
   const [enrollmentForm, setEnrollmentForm] = useState(buildEnrollmentForm());
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const canEnrollPatients = hasRoleAccess(user?.role, PATIENT_ENROLLMENT_ROLES);
 
   const loadPatients = async () => {
     const response = await apiClient.get("/api/Patient");
@@ -243,119 +247,121 @@ export default function PatientList() {
           </div>
         </section>
 
-        <section className="panel-shell overflow-hidden">
-          <div className="border-b border-slate-200 bg-slate-950 px-6 py-5 text-white">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-white/10 p-3 text-white">
-                <UserPlus className="h-5 w-5" />
+        {canEnrollPatients ? (
+          <section className="panel-shell overflow-hidden">
+            <div className="border-b border-slate-200 bg-slate-950 px-6 py-5 text-white">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-white/10 p-3 text-white">
+                  <UserPlus className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="section-title text-slate-300">Patient Intake</p>
+                  <h2 className="text-2xl font-semibold">Enroll New Patient</h2>
+                </div>
               </div>
-              <div>
-                <p className="section-title text-slate-300">Patient Intake</p>
-                <h2 className="text-2xl font-semibold">Enroll New Patient</h2>
+              <p className="mt-3 text-sm text-slate-300">
+                Create a brand-new patient record before assigning a doctor later in the workflow.
+              </p>
+            </div>
+
+            <form onSubmit={handleEnrollPatient} className="grid gap-4 p-6 md:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-slate-700">First Name</span>
+                <input
+                  value={enrollmentForm.firstName}
+                  onChange={(event) => handleEnrollmentChange("firstName", event.target.value)}
+                  className={fieldClassName}
+                  required
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-slate-700">Last Name</span>
+                <input
+                  value={enrollmentForm.lastName}
+                  onChange={(event) => handleEnrollmentChange("lastName", event.target.value)}
+                  className={fieldClassName}
+                  required
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-slate-700">Date of Birth</span>
+                <input
+                  type="date"
+                  value={enrollmentForm.dateOfBirth}
+                  onChange={(event) => handleEnrollmentChange("dateOfBirth", event.target.value)}
+                  className={fieldClassName}
+                  required
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-slate-700">Gender</span>
+                <select
+                  value={enrollmentForm.gender}
+                  onChange={(event) => handleEnrollmentChange("gender", event.target.value)}
+                  className={fieldClassName}
+                  required
+                >
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-slate-700">Phone Number</span>
+                <input
+                  value={enrollmentForm.phoneNumber}
+                  onChange={(event) => handleEnrollmentChange("phoneNumber", event.target.value)}
+                  className={fieldClassName}
+                  required
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-slate-700">Health Card</span>
+                <input
+                  value={enrollmentForm.healthCardNo}
+                  onChange={(event) => handleEnrollmentChange("healthCardNo", event.target.value)}
+                  className={fieldClassName}
+                  required
+                />
+              </label>
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-semibold text-slate-700">Email</span>
+                <input
+                  type="email"
+                  value={enrollmentForm.email}
+                  onChange={(event) => handleEnrollmentChange("email", event.target.value)}
+                  className={fieldClassName}
+                  required
+                />
+              </label>
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-semibold text-slate-700">Address</span>
+                <input
+                  value={enrollmentForm.address}
+                  onChange={(event) => handleEnrollmentChange("address", event.target.value)}
+                  className={fieldClassName}
+                  required
+                />
+              </label>
+
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  className="rounded-2xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {isCreating ? "Enrolling..." : "Enroll Patient"}
+                </button>
               </div>
-            </div>
-            <p className="mt-3 text-sm text-slate-300">
-              Create a brand-new patient record before assigning a doctor later in the workflow.
-            </p>
-          </div>
-
-          <form onSubmit={handleEnrollPatient} className="grid gap-4 p-6 md:grid-cols-2">
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-700">First Name</span>
-              <input
-                value={enrollmentForm.firstName}
-                onChange={(event) => handleEnrollmentChange("firstName", event.target.value)}
-                className={fieldClassName}
-                required
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-700">Last Name</span>
-              <input
-                value={enrollmentForm.lastName}
-                onChange={(event) => handleEnrollmentChange("lastName", event.target.value)}
-                className={fieldClassName}
-                required
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-700">Date of Birth</span>
-              <input
-                type="date"
-                value={enrollmentForm.dateOfBirth}
-                onChange={(event) => handleEnrollmentChange("dateOfBirth", event.target.value)}
-                className={fieldClassName}
-                required
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-700">Gender</span>
-              <select
-                value={enrollmentForm.gender}
-                onChange={(event) => handleEnrollmentChange("gender", event.target.value)}
-                className={fieldClassName}
-                required
-              >
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-              </select>
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-700">Phone Number</span>
-              <input
-                value={enrollmentForm.phoneNumber}
-                onChange={(event) => handleEnrollmentChange("phoneNumber", event.target.value)}
-                className={fieldClassName}
-                required
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-700">Health Card</span>
-              <input
-                value={enrollmentForm.healthCardNo}
-                onChange={(event) => handleEnrollmentChange("healthCardNo", event.target.value)}
-                className={fieldClassName}
-                required
-              />
-            </label>
-
-            <label className="space-y-2 md:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">Email</span>
-              <input
-                type="email"
-                value={enrollmentForm.email}
-                onChange={(event) => handleEnrollmentChange("email", event.target.value)}
-                className={fieldClassName}
-                required
-              />
-            </label>
-
-            <label className="space-y-2 md:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">Address</span>
-              <input
-                value={enrollmentForm.address}
-                onChange={(event) => handleEnrollmentChange("address", event.target.value)}
-                className={fieldClassName}
-                required
-              />
-            </label>
-
-            <div className="md:col-span-2">
-              <button
-                type="submit"
-                disabled={isCreating}
-                className="rounded-2xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-              >
-                {isCreating ? "Enrolling..." : "Enroll Patient"}
-              </button>
-            </div>
-          </form>
-        </section>
+            </form>
+          </section>
+        ) : null}
       </div>
     </section>
   );

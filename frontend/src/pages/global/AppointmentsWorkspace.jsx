@@ -2,6 +2,13 @@ import { CalendarDays, CalendarPlus2, CircleX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import apiClient from "../../api/apiClient";
 import { useAuth } from "../../contexts/AuthContext";
+import {
+  APPOINTMENT_BOOKING_ROLES,
+  APPOINTMENT_CANCELLATION_ROLES,
+  APPOINTMENT_DIRECTORY_ROLES,
+  APPOINTMENT_WORKSPACE_ROLES,
+  hasRoleAccess,
+} from "../../data/roleAccess";
 
 const fieldClassName =
   "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
@@ -24,6 +31,7 @@ function createBookingForm(defaultDoctorPublicId = "") {
 
 export default function AppointmentsWorkspace() {
   const { user } = useAuth();
+  const role = user?.role ?? "";
   const [staffMembers, setStaffMembers] = useState([]);
   const [patients, setPatients] = useState([]);
   const [selectedDoctorPublicId, setSelectedDoctorPublicId] = useState("");
@@ -38,17 +46,26 @@ export default function AppointmentsWorkspace() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const canChooseDoctor = ["Admin", "Manager", "Secretary"].includes(user?.role ?? "");
-  const canBookAppointment = ["Admin", "Secretary"].includes(user?.role ?? "");
-  const canCancelAppointment = ["Doctor", "Admin", "Manager", "Secretary"].includes(user?.role ?? "");
+  const canAccessWorkspace = hasRoleAccess(role, APPOINTMENT_WORKSPACE_ROLES);
+  const canChooseDoctor = hasRoleAccess(role, APPOINTMENT_DIRECTORY_ROLES);
+  const canBookAppointment = hasRoleAccess(role, APPOINTMENT_BOOKING_ROLES);
+  const canCancelAppointment = hasRoleAccess(role, APPOINTMENT_CANCELLATION_ROLES);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadReferenceData = async () => {
+      if (!canAccessWorkspace) {
+        setStaffMembers([]);
+        setPatients([]);
+        setSelectedDoctorPublicId("");
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const [staffResponse, patientsResponse] = await Promise.all([
-          apiClient.get("/api/Staff"),
+          canChooseDoctor ? apiClient.get("/api/Staff") : Promise.resolve({ data: [] }),
           canBookAppointment ? apiClient.get("/api/Patient") : Promise.resolve({ data: [] }),
         ]);
 
@@ -68,7 +85,9 @@ export default function AppointmentsWorkspace() {
         setPatients(patientsResponse.data);
         setBookingForm((current) => ({
           ...current,
-          doctorPublicId: current.doctorPublicId || doctors[0]?.publicId || user?.publicId || "",
+          doctorPublicId: current.doctorPublicId
+            || (canChooseDoctor ? doctors[0]?.publicId : user?.publicId)
+            || "",
           patientPublicId: current.patientPublicId || patientsResponse.data[0]?.patientPublicId || "",
         }));
       } catch (error) {
@@ -84,12 +103,19 @@ export default function AppointmentsWorkspace() {
     return () => {
       isMounted = false;
     };
-  }, [canBookAppointment, canChooseDoctor, user?.publicId]);
+  }, [canAccessWorkspace, canBookAppointment, canChooseDoctor, user?.publicId]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadAppointments = async () => {
+      if (!canAccessWorkspace) {
+        setAppointments([]);
+        setSelectedAppointment(null);
+        setIsLoading(false);
+        return;
+      }
+
       if (!selectedDoctorPublicId || !selectedDate) {
         setAppointments([]);
         setSelectedAppointment(null);
@@ -138,12 +164,25 @@ export default function AppointmentsWorkspace() {
     return () => {
       isMounted = false;
     };
-  }, [selectedDoctorPublicId, selectedDate]);
+  }, [canAccessWorkspace, selectedDoctorPublicId, selectedDate]);
 
   const selectedDoctor = useMemo(
     () => staffMembers.find((staffMember) => staffMember.publicId === selectedDoctorPublicId) ?? null,
     [staffMembers, selectedDoctorPublicId],
   );
+
+  if (!canAccessWorkspace) {
+    return (
+      <section className="panel-shell p-8">
+        <p className="section-title">Appointments</p>
+        <h2 className="mt-2 text-2xl font-semibold text-slate-950">Appointment workspace unavailable</h2>
+        <p className="mt-3 text-sm leading-6 text-slate-500">
+          The backend currently allows appointment scheduling and schedule review for Doctor, Secretary,
+          Admin, and Manager sessions only.
+        </p>
+      </section>
+    );
+  }
 
   const handleSelectAppointment = async (appointmentPublicId) => {
     setDetailLoading(true);

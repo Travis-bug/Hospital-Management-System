@@ -9,6 +9,15 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import {
+  APPOINTMENT_WORKSPACE_ROLES,
+  PATIENT_REGISTRY_ROLES,
+  SCHEDULE_WORKSPACE_ROLES,
+  STAFF_MANAGEMENT_ROLES,
+  TEST_RESULTS_WORKSPACE_ROLES,
+  VISIT_WORKSPACE_ROLES,
+  hasRoleAccess,
+} from "../../data/roleAccess";
 
 const globalNavItems = [
   {
@@ -16,47 +25,52 @@ const globalNavItems = [
     to: "/patients",
     icon: UsersRound,
     description: "Browse the active patient roster.",
+    roles: PATIENT_REGISTRY_ROLES,
   },
   {
     label: "Visits",
     to: "/visits",
     icon: ClipboardList,
     description: "Track open and historical encounters.",
+    roles: VISIT_WORKSPACE_ROLES,
   },
   {
     label: "Appointments",
     to: "/appointments",
     icon: CalendarDays,
     description: "Review booked and upcoming schedules.",
+    roles: APPOINTMENT_WORKSPACE_ROLES,
   },
   {
     label: "Schedule",
     to: "/schedule",
     icon: CalendarRange,
     description: "Manage personal shifts and daily staffing rosters.",
+    roles: SCHEDULE_WORKSPACE_ROLES,
   },
   {
     label: "Tests",
     to: "/tests",
     icon: FlaskConical,
     description: "Access diagnostic workups and orders.",
+    roles: TEST_RESULTS_WORKSPACE_ROLES,
   },
 ];
 
 export default function GlobalSidebar() {
   const { user } = useAuth();
-  const canManageStaff = user?.role === "Manager" || user?.role === "Admin";
-  const visibleNavItems = canManageStaff
-    ? [
-        ...globalNavItems,
-        {
-          label: "Staff Management",
-          to: "/staff-management",
-          icon: ShieldCheck,
-          description: "Provision internal staff accounts and roles.",
-        },
-      ]
-    : globalNavItems;
+  const role = user?.role ?? "";
+  const canManageStaff = hasRoleAccess(role, STAFF_MANAGEMENT_ROLES);
+  const visibleNavItems = globalNavItems.filter((item) => hasRoleAccess(role, item.roles));
+
+  if (canManageStaff) {
+    visibleNavItems.push({
+      label: "Staff Management",
+      to: "/staff-management",
+      icon: ShieldCheck,
+      description: "Provision internal staff accounts and roles.",
+    });
+  }
 
   return (
     <aside className="panel-shell h-fit w-full shrink-0 p-4 lg:w-[300px]">
